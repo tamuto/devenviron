@@ -24,5 +24,5 @@ RUN pip install \
 RUN npm install -g @infodb/infodb-cli npm-check-updates
 RUN poetry config virtualenvs.in-project true
 
-ENTRYPOINT ["/bin/bash"]
-CMD [""]
+ENTRYPOINT [""]
+CMD ["/bin/bash"]
