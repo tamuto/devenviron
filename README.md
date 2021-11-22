@@ -32,3 +32,13 @@ docker run --rm -it -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w
 * sqlite3
 * nodejs
 * npm
+* Terraform
+
+## 内部資料
+
+```
+docker build -t tamuto/devenviron:vX.X.X .
+docker tag tamuto/devenviron:latest tamuto/devenviron:vX.X.X
+docker push tamuto/devenviron:vX.X.X
+docker push tamuto/devenviron:latest
+```
