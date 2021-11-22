@@ -38,7 +38,7 @@ docker run --rm -it -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w
 
 ```
 docker build -t tamuto/devenviron:vX.X.X .
-docker tag tamuto/devenviron:latest tamuto/devenviron:vX.X.X
+docker tag tamuto/devenviron:vX.X.X tamuto/devenviron:latest
 docker push tamuto/devenviron:vX.X.X
 docker push tamuto/devenviron:latest
 ```
