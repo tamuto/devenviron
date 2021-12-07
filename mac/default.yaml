@@ -24,7 +24,7 @@ mounts:
   - location: "/tmp/lima"
     writable: true
 ssh:
-  localPort: 60006
+  localPort: 60007
   # Load ~/.ssh/*.pub in addition to $LIMA_HOME/_config/user.pub , for allowing DOCKER_HOST=ssh:// .
   # This option is enabled by default.
   # If you have an insecure key under ~/.ssh, do not use this option.

@@ -4,4 +4,5 @@ lima docker run \
     -v $PWD:$PWD -w $PWD \
     -v ~/.devenviron/.gitconfig:/root/.gitconfig \
     -v ~/.devenviron/.git-credentials:/root/.git-credentials \
-    tamuto/devenviron:lima-latest $*
+    -v /var/run/`id -u`/docker.sock:/var/run/docker.sock \
+    tamuto/devenviron:latest $*
