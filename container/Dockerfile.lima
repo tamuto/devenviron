@@ -1,0 +1,3 @@
+FROM tamuto/devenviron:base
+
+COPY resources/bash_aliases /root/.bashrc

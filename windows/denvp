@@ -1,0 +1,1 @@
+docker run --rm -it -p $1 -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD tamuto/devenviron ${@:2}

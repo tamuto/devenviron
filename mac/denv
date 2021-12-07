@@ -1,0 +1,1 @@
+lima docker run --rm -it -v $PWD:$PWD -w $PWD tamuto/devenviron:lima-latest $*
