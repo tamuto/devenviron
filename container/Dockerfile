@@ -20,5 +20,7 @@ RUN apt-get update && apt-get install -y \
 &&  npm install -g @infodb/infodb-cli npm-check-updates \
 &&  poetry config virtualenvs.in-project true
 
+COPY resources/bash_aliases /root/.bashrc
+
 ENTRYPOINT [""]
 CMD ["/bin/bash"]
