@@ -1,0 +1,8 @@
+# TODO ~/.devenviron is not exist then makedir 
+lima docker run \
+    --rm -it \
+    -v $PWD:$PWD -w $PWD \
+    -v ~/.devenviron/.gitconfig:/root/.gitconfig \
+    -v ~/.devenviron/.git-credentials:/root/.git-credentials \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    tamuto/devenviron:latest $*

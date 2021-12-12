@@ -35,3 +35,7 @@ nameserver 8.8.8.8
 ```
 rm /etc/resolv.conf
 ```
+
+
+sudo visudo
+が良い。

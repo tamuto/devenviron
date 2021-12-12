@@ -41,7 +41,26 @@ provision:
       command -v docker >/dev/null 2>&1 && exit 0
       export DEBIAN_FRONTEND=noninteractive
       curl -fsSL https://get.docker.com | sh
+      # NOTE: you may remove the lines below, if you prefer to use rootful docker, not rootless
+      systemctl disable --now docker
+      apt-get install -y uidmap
   - mode: user
     script: |
       #!/bin/bash
-      sudo usermod -a -G docker $USER
+      set -eux -o pipefail
+      dockerd-rootless-setuptool.sh install
+      docker context use rootless
+      sudo apt install -y docker-compose qemu-system-x86 binfmt-support qemu-user qemu-user-static
+probes:
+  - script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      if ! timeout 30s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"; then
+        echo >&2 "docker is not installed yet"
+        exit 1
+      fi
+      if ! timeout 30s bash -c "until pgrep rootlesskit; do sleep 3; done"; then
+        echo >&2 "rootlesskit (used by rootless docker) is not running"
+        exit 1
+      fi
+    hint: See "/var/log/cloud-init-output.log". in the guest
