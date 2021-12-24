@@ -10,3 +10,4 @@ sudo apt-get -qq -y install podman
 sudo mkdir -p /etc/containers
 echo -e "[registries.search]\nregistries = ['docker.io', 'quay.io']" | sudo tee /etc/containers/registries.conf
 ```
+
