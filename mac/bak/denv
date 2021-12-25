@@ -1,8 +1,0 @@
-# TODO ~/.devenviron is not exist then makedir 
-docker run \
-    --rm -it \
-    -v $PWD:$PWD -w $PWD \
-    -v ~/.devenviron/.gitconfig:/root/.gitconfig \
-    -v ~/.devenviron/.git-credentials:/root/.git-credentials \
-    -v /var/run/user/`id -u`/docker.sock:/var/run/docker.sock \
-    tamuto/devenviron:latest $*

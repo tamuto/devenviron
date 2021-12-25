@@ -1,4 +1,4 @@
-# TODO ~/.devenviron is not exist then makedir 
+#!/bin/bash
 DENV_HOST=`hostname -I | awk '{ print $1 }'`
 podman run \
     --rm -it \
@@ -8,4 +8,5 @@ podman run \
     -v ~/.devenviron/.git-credentials:/root/.git-credentials \
     -v ~/.devenviron/.awsconfig:/root/.awsconfig \
     -v ~/.devenviron/.aws-credentials:/root/.aws-credentials \
-    tamuto/devenviron:latest $*
+    -p $1 \
+    tamuto/devenviron:latest ${@:2}

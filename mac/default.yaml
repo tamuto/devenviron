@@ -23,12 +23,6 @@ provision:
   - mode: user
     script: |
       #!/bin/bash
-      mkdir ~/.devenviron
-      mkdir ~/.devenviron/mysql_data
-      touch ~/.devenviron/.gitconfig
-      touch ~/.devenviron/.git-credentials
-      touch ~/.devenviron/.awsconfig
-      touch ~/.devenviron/.aws-credentials
       mkdir -p ~/.config/containers
       cat <<EOF > ~/.config/containers/containers.conf
       [engine]

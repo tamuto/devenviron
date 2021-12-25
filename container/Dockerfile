@@ -1,7 +1,7 @@
 FROM python:3.9-slim-buster
 
 RUN apt-get update && apt-get install -y \
-    curl build-essential git docker.io sqlite3 \
+    curl build-essential git sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp \
     mycli \
 &&  curl -L https://deb.nodesource.com/setup_lts.x | bash - \
