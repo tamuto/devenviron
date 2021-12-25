@@ -1,2 +1,2 @@
-docker push tamuto/devenviron:$1
-docker push tamuto/devenviron:latest
+podman push tamuto/devenviron:$1
+podman push tamuto/devenviron:latest

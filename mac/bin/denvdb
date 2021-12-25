@@ -1,0 +1,9 @@
+podman run \
+    --rm -d \
+    --name mysql \
+    -p3306:3306 \
+    -e MYSQL_ROOT_PASSWORD=password \
+    -v ~/.devenviron/mysql_data:/var/lib/mysql \
+    mysql:5.7 \
+    --character-set-server=utf8 \
+    --collation-server=utf8_unicode_ci
