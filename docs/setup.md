@@ -22,4 +22,25 @@ curl https://raw.githubusercontent.com/tamuto/devenviron/main/setup/setup.sh | s
 * ~/.devenvironフォルダの整備
 * ~/binへ必要なコマンドのインストール
 ---
-# 
+# gitの設定
+
+現時点では、コマンドラインからの設定ができないため、以下のファイルを編集する。
+* ~/.devenviron/.gitconfig
+```
+[user]
+  email = <your email>
+  name = <your name>
+[credential]
+  helper = store
+```
+* ~./devenviron/.git-credentials
+```
+https://id:pass@url
+```
+---
+# 作業の開始
+作業用フォルダへ移動し、以下のコマンドを実行する。
+
+```
+denv
+```

@@ -1,13 +1,20 @@
-# Mac環境におけるDocker
+# Lima + Podman
 
-## Lima + Podman
+## インストール
 
-Windowsと同じ環境が作成できる。
+```
+brew install lima
+```
 
+## VMの作成
 
+* 本プロジェクト内のmac/default.yamlを使用しLima VMを作成する。
 
+```
+limactl start default.yaml
+```
 
-実行
+## 実行
 
 ```
 limactl shell --workdir /home/(id).linux default

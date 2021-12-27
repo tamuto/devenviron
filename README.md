@@ -1,23 +1,12 @@
-# 開発環境用Dockerイメージ
+# 開発環境構築
 
 ECMAScript + Pythonの開発に必要なツール群を入れたDockerイメージのプロジェクト
 
-## 使い方
+## ドキュメント
 
-* まず、Dockerイメージをpullします。
+[環境構築](docs/setup.md)
 
-```shell
-docker pull tamuto/devenviron:latest
-```
-
-* 次に以下のようなスクリプトを作成し、パスを通しておきます。(サンプルとしてはnpm run xxxで実行するケース)
-* そうすることで環境を汚染することなく、共通した開発環境として利用できます。
-
-```bash
-docker run --rm -it -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD tamuto/devenviron -c "npm run ${@:2}
-```
-
-## インストールされるソフトウェア
+## イメージ内に含まれるソフトウェア
 
 * python 3.9
 * poetry
@@ -25,11 +14,9 @@ docker run --rm -it -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w
 * awscli
 * twine
 * python-dotenv
-* sudachi-py
 * build-essential
 * git
-* docker
 * sqlite3
 * nodejs
 * npm
-* Terraform
+* terraform
