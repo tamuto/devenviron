@@ -1,7 +1,7 @@
 #!/bin/bash
-podman pull tamuto/devenviron:latest
-mkdir ~/.devenviron
-mkdir ~/.devenviron/mysql_data
+podman pull docker.io/tamuto/devenviron:latest
+mkdir -p ~/.devenviron
+mkdir -p ~/.devenviron/mysql_data
 touch ~/.devenviron/.gitconfig
 touch ~/.devenviron/.git-credentials
 touch ~/.devenviron/.awsconfig
