@@ -9,6 +9,7 @@ touch ~/.devenviron/.aws-credentials
 touch ~/.devenviron/.npmrc
 
 mkdir -p ~/bin
+rm ~/bin/denv*
 wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/setup/bin/denv 
 wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/setup/bin/denvp
 wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/setup/bin/denvdb
