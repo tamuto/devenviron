@@ -20,7 +20,7 @@ ECMAScript + Pythonの開発に必要なツール群を入れたDockerイメー�
 ## ドキュメント
 
 * [環境構築](docs/setup.md)
-* [コマンド一覧](docs/command.md)
+* [コマンド一覧](docs/commands.md)
 
 ## イメージ内に含まれるソフトウェア
 
