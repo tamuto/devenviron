@@ -8,4 +8,5 @@ podman run \
     -v ~/.devenviron/.git-credentials:/root/.git-credentials \
     -v ~/.devenviron/.awsconfig:/root/.awsconfig \
     -v ~/.devenviron/.aws-credentials:/root/.aws-credentials \
+    -v ~/.devenviron/.npmrc:/root/.npmrc \
     tamuto/devenviron:latest $*
