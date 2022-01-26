@@ -1,6 +1,3 @@
----
-marp: true
----
 # 環境構築
 
 * この手順を実行する前にOS個別の設定を終了させること
@@ -9,8 +6,7 @@ marp: true
   * MacはLima + Podmanのインストールが済んでいること
   （手順書は[lima_podman.md](lima_podman.md)を参照のこと）
 
----
-# Setupシェルの実行
+## Setupシェルの実行
 
 コマンドを実行する。
 ```
@@ -21,8 +17,8 @@ curl https://raw.githubusercontent.com/tamuto/devenviron/main/setup/setup.sh | s
 * tamuto/devenviron:latestのダウンロード
 * ~/.devenvironフォルダの整備
 * ~/binへ必要なコマンドのインストール
----
-# gitの設定
+
+## gitの設定
 
 現時点では、コマンドラインからの設定ができないため、以下のファイルを編集する。
 * ~/.devenviron/.gitconfig
@@ -37,10 +33,11 @@ curl https://raw.githubusercontent.com/tamuto/devenviron/main/setup/setup.sh | s
 ```
 https://id:pass@url
 ```
----
-# 作業の開始
-作業用フォルダへ移動し、以下のコマンドを実行する。
 
-```
-denv
-```
+## awscliの設定
+
+(後日追記)
+
+## npmrcの設定
+
+(後日追記)
