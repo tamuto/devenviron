@@ -6,8 +6,8 @@ podman run \
     -v $PWD:$PWD -w $PWD \
     -v ~/.devenviron/.gitconfig:/root/.gitconfig \
     -v ~/.devenviron/.git-credentials:/root/.git-credentials \
-    -v ~/.devenviron/.awsconfig:/root/.awsconfig \
-    -v ~/.devenviron/.aws-credentials:/root/.aws-credentials \
+    -v ~/.devenviron/.awsconfig:/root/.aws/config \
+    -v ~/.devenviron/.aws-credentials:/root/.aws/credentials \
     -v ~/.devenviron/.npmrc:/root/.npmrc \
     -p $1 \
     tamuto/devenviron:latest ${@:2}

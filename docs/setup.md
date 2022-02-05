@@ -34,9 +34,25 @@ curl https://raw.githubusercontent.com/tamuto/devenviron/main/setup/setup.sh | s
 https://id:pass@url
 ```
 
-## awscliの設定
+## awsの設定
 
-(後日追記)
+現時点では、コマンドラインからの設定ができないため、以下のファイルを編集する。
+* ~/.devenviron/.awsconfig
+```
+[default]
+region = <your region>
+output = json
+```
+* ~/.devenviron/.aws-credentials
+```
+[default]
+aws_access_key_id = <your key>
+aws_secret_access_key = <your secret key>
+
+[switch-role if needed]
+source_profile = default
+role_arn = arn:aws:iam::<your numbers>:role/<your role>
+```
 
 ## npmrcの設定
 
