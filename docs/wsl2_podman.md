@@ -2,9 +2,15 @@
 
 ## WSL2のインストール
 
+https://docs.microsoft.com/ja-jp/windows/wsl/install
+
+## Chocolateyのインストール
+
+https://chocolatey.org/install
+
+## Windows Terminalのインストール
+
 ```
-choco install wsl2
-choco install wsl-ubuntu-2004
 choco install microsoft-windows-terminal
 ```
 
