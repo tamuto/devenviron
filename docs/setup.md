@@ -10,7 +10,7 @@
 
 コマンドを実行する。
 ```
-curl https://raw.githubusercontent.com/tamuto/devenviron/main/setup/setup.sh | sh
+curl https://raw.githubusercontent.com/tamuto/devenviron/main/standard/setup.sh | sh
 ```
 
 上記コマンドを実行すると以下のことが行われる。
