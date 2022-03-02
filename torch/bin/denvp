@@ -1,0 +1,13 @@
+#!/bin/bash
+DENV_HOST=`hostname -I | awk '{ print $1 }'`
+docker run \
+    --rm -it \
+    --add-host="denv.host:$DENV_HOST" \
+    -v $PWD:$PWD -w $PWD \
+    -v ~/.devenviron/.gitconfig:/root/.gitconfig \
+    -v ~/.devenviron/.git-credentials:/root/.git-credentials \
+    -v ~/.devenviron/.awsconfig:/root/.aws/config \
+    -v ~/.devenviron/.aws-credentials:/root/.aws/credentials \
+    -v ~/.devenviron/.npmrc:/root/.npmrc \
+    -p $1 \
+    tamuto/devenviron:torch ${@:2}
