@@ -1,3 +1,3 @@
 #!/bin/sh
-docker build -t docker.io/tamuto/devenviron:$1 container -f container/Dockerfile
-docker tag docker.io/tamuto/devenviron:$1 docker.io/tamuto/devenviron:torch
+docker build -t tamuto/devenviron:$1 container -f container/Dockerfile
+docker tag tamuto/devenviron:$1 tamuto/devenviron:torch
