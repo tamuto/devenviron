@@ -29,7 +29,7 @@ curl https://raw.githubusercontent.com/tamuto/devenviron/main/setup/setup.sh | s
 [credential]
   helper = store
 ```
-* ~./devenviron/.git-credentials
+* ~/.devenviron/.git-credentials
 ```
 https://id:pass@url
 ```
