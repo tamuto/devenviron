@@ -9,10 +9,7 @@ RUN apt-get update && apt-get install -y \
 &&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
 &&  apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 &&  apt-get update && apt-get install terraform \
-&&  apt-get clean && rm -rf /var/lib/apt/lists/* \
-&&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
-&&  dpkg -i session-manager-plugin.deb \
-&&  rm session-manager-plugin.deb
+&&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN pip install \
     poetry \
@@ -26,7 +23,10 @@ RUN pip install \
 
 RUN npm install -g npm \
 &&  npm install -g @infodb/infodb-cli npm-check-updates \
-&&  poetry config virtualenvs.in-project true
+&&  poetry config virtualenvs.in-project true \
+&&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
+&&  dpkg -i session-manager-plugin.deb \
+&&  rm session-manager-plugin.deb
 
 COPY resources/bash_aliases /root/.bashrc
 
