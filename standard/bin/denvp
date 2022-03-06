@@ -9,5 +9,6 @@ podman run \
     -v ~/.devenviron/.awsconfig:/root/.aws/config \
     -v ~/.devenviron/.aws-credentials:/root/.aws/credentials \
     -v ~/.devenviron/.npmrc:/root/.npmrc \
+    -v ~/.devenviron/.sshconfig:/root/.ssh/config \
     -p $1 \
     tamuto/devenviron:latest ${@:2}

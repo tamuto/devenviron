@@ -56,4 +56,15 @@ role_arn = arn:aws:iam::<your numbers>:role/<your role>
 
 ## npmrcの設定
 
+* ~/.devenviron/.npmrc
+
 (後日追記)
+
+## sshの設定
+
+* ~/.devenviron/.sshconfig
+
+```
+host i-* mi-*
+    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p' --profile xxx"
+```
