@@ -62,9 +62,5 @@ role_arn = arn:aws:iam::<your numbers>:role/<your role>
 
 ## sshの設定
 
-* ~/.devenviron/.sshconfig
-
-```
-host i-* mi-*
-    ProxyCommand sh -c "aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p' --profile xxx"
-```
+`~/.devenviron/.ssh/`フォルダを作成する。
+その他必要なファイルを格納する。

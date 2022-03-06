@@ -29,6 +29,7 @@ RUN npm install -g npm \
 &&  rm session-manager-plugin.deb
 
 COPY resources/bash_aliases /root/.bashrc
+COPY resources/ssh-aws.sh /usr/local/bin/ssh-aws.sh
 
 ENTRYPOINT [""]
 CMD ["/bin/bash"]
