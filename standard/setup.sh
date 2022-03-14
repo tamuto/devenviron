@@ -1,7 +1,7 @@
 #!/bin/bash
 podman pull docker.io/tamuto/devenviron:latest
 mkdir -p ~/.devenviron
-mkdir -p ~/.ssh
+mkdir -p ~/.devenviron/.ssh
 mkdir -p ~/.devenviron/mysql_data
 touch ~/.devenviron/.gitconfig
 touch ~/.devenviron/.git-credentials
