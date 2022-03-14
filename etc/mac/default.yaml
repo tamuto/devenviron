@@ -42,3 +42,9 @@ provision:
       [registries.block]
       registries = []
       EOF
+      mkdir -p ~/bin
+      cat <<EOF > ~/bin/denvcp
+      cp /Users/$USER/.devenviron/.* ~/.devenviron
+      EOF
+      chmod +x ~/bin/denvcp
+
