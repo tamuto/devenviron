@@ -6,6 +6,7 @@ images:
 mounts:
   - location: "/tmp/lima"
     writable: true
+disk: "30GiB"
 ssh:
   localPort: 60906
 containerd:
