@@ -11,7 +11,7 @@ brew install lima
 * 本プロジェクト内のmac/default.yamlを使用しLima VMを作成する。
 
 ```
-limactl start default.yaml
+limactl start https://raw.githubusercontent.com/tamuto/devenviron/main/etc/mac/default.yaml
 ```
 
 ## 実行
