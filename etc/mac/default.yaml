@@ -4,6 +4,8 @@ images:
   - location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"
     arch: "aarch64"
 mounts:
+  - location: "~/.devenviron"
+    writable: false
   - location: "/tmp/lima"
     writable: true
 disk: "30GiB"
