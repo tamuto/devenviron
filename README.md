@@ -36,3 +36,5 @@ ECMAScript + Pythonの開発に必要なツール群を入れたDockerイメー�
 * nodejs
 * npm
 * terraform
+* PHP
+* composer

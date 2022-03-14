@@ -3,13 +3,15 @@ FROM python:3.9-slim-buster
 RUN apt-get update && apt-get install -y \
     curl build-essential git sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp \
-    mycli \
+    mycli php \
 &&  curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-get install -y nodejs \
 &&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
 &&  apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 &&  apt-get update && apt-get install terraform \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 RUN pip install \
     poetry \
