@@ -47,7 +47,7 @@ nameserver 8.8.8.8
 ## Podmanのインストール
 
 ```
-cat /etc/os-release
+. /etc/os-release
 sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/x${NAME}_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
 wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/x${NAME}_${VERSION_ID}/Release.key -O Release.key
 sudo apt-key add - < Release.key
