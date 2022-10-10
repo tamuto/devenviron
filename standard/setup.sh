@@ -11,8 +11,10 @@ touch ~/.devenviron/.npmrc
 
 mkdir -p ~/bin
 rm ~/bin/denv*
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denv 
+wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denv
 wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvp
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvdb
+wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvdb5
+wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvdb8
+ln -s ~/bin/denvdb5 ~/bin/denvdb
 
 chmod +x ~/bin/denv*

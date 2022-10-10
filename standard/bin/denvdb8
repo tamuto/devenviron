@@ -1,0 +1,10 @@
+#!/bin/bash
+podman run \
+    --rm -d \
+    --name mysql8 \
+    -p3306:3306 \
+    -e MYSQL_ROOT_PASSWORD=password \
+    -v ~/.devenviron/mysql_data8:/var/lib/mysql \
+    mysql:8 \
+    --character-set-server=utf8 \
+    --collation-server=utf8_unicode_ci
