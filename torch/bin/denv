@@ -9,4 +9,5 @@ docker run \
     -v ~/.devenviron/.awsconfig:/root/.aws/config \
     -v ~/.devenviron/.aws-credentials:/root/.aws/credentials \
     -v ~/.devenviron/.npmrc:/root/.npmrc \
+    -v ~/.devenviron/.ssh:/root/.ssh \
     tamuto/devenviron:torch $*

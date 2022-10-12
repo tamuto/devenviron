@@ -2,7 +2,8 @@
 podman pull docker.io/tamuto/devenviron:latest
 mkdir -p ~/.devenviron
 mkdir -p ~/.devenviron/.ssh
-mkdir -p ~/.devenviron/mysql_data
+mkdir -p ~/.devenviron/mysql_data5
+mkdir -p ~/.devenviron/mysql_data8
 touch ~/.devenviron/.gitconfig
 touch ~/.devenviron/.git-credentials
 touch ~/.devenviron/.awsconfig
