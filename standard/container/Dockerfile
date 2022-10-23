@@ -1,9 +1,9 @@
-FROM python:3.9-slim-buster
+FROM python:3.9-slim-bullseye
 
 RUN apt-get update && apt-get install -y \
     curl build-essential git sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp \
-    mycli php p7zip-full subversion \
+    mycli php p7zip-full subversion ffmpeg chromium fonts-ipafont fonts-ipaexfont \
 &&  curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-get install -y nodejs \
 &&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
