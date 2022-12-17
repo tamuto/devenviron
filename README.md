@@ -35,6 +35,7 @@ ECMAScript + Pythonの開発に必要なツール群を入れたDockerイメー�
 * sqlite3
 * nodejs
 * npm
+* pnpm
 * terraform
 * PHP
 * composer

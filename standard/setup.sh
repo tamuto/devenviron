@@ -16,6 +16,7 @@ wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/
 wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvp
 wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvdb5
 wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvdb8
+wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denv_clear_podman
 ln -s ~/bin/denvdb5 ~/bin/denvdb
 
 chmod +x ~/bin/denv*
