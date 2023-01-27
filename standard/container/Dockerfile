@@ -25,7 +25,8 @@ RUN pip install \
     boto3 \
     twine \
     setuptools_scm \
-    python-dotenv
+    python-dotenv \
+    notebook
 
 RUN npm install -g npm \
 &&  npm install -g @infodb/infodb-cli npm-check-updates pnpm \
