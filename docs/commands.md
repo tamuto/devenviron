@@ -8,6 +8,7 @@
 | denv5             | MySQL:5のイメージで起動する。                                                             |
 | denv8             | MySQL:8のイメージで起動する。                                                             |
 | denv_clear_podman | Podmanのエラーでerror joining network namespace for containerが出力する際の復旧コマンド。 |
+| denvnote          | jypyter notebookを起動する。                                                              |
 
 ## denvコマンド
 
@@ -55,6 +56,18 @@ mysql+pymysql://root:password@denv.host/db?charset=utf8
 ```
 mysql -h denv.host -u root -p password 
 ```
+
+## denvnoteコマンド
+
+```
+denvnote port notebook-options
+```
+
+* jupyter notebookを起動させる。
+* 起動した時のフォルダをルートとして扱う。
+* 1つ目の引数は待ち受けポート
+* 2つ目以降のオプションはjupyter notebookのオプション。（必要に応じて指定する。）
+* 停止させる時には`podman stop jupyter`のコマンドを入力する。
 
 ## コマンド関連図
 
