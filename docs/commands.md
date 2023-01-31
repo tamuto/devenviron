@@ -13,7 +13,7 @@
 ## denvコマンド
 
 ```
-denv [command]
+denv <コマンド>
 ```
 
 * 通常は引数を指定しない状態で起動させる。
@@ -22,7 +22,7 @@ denv [command]
 ## denvpコマンド
 
 ```
-denvp port command
+denvp <ポート番号> <コマンド>
 ```
 
 * サーバ起動などで使用する。
@@ -58,6 +58,26 @@ mysql -h denv.host -u root -p password
 ```
 
 ## denvnoteコマンド
+
+### 環境構築
+
+* 以下のコマンドをdenv環境内でjupyter notebookの環境を構築します。
+  * `infodb-cli nbenv`の詳細はこちら
+
+```
+cd <ワークフォルダ>
+infodb-cli nbenv
+```
+
+### 必要なライブラリの追加
+
+```
+poetry add <ライブラリ>
+```
+
+### Jupyter Notebookの起動
+
+* denv環境の外から以下のコマンドを実行する。
 
 ```
 denvnote port notebook-options

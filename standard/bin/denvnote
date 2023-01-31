@@ -13,5 +13,5 @@ podman run \
     -v ~/.devenviron/.ssh:/root/.ssh \
     -p $1:8888 \
     tamuto/devenviron:latest \
-    jupyter notebook --allow-root --ip 0.0.0.0 --no-browser --NotebookApp.token='' \
+    poetry run jupyter notebook --allow-root --ip 0.0.0.0 --no-browser --NotebookApp.token='' \
     ${@:2}

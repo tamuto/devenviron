@@ -26,11 +26,9 @@ ECMAScript + Pythonの開発に必要なツール群を入れたDockerイメー�
 
 * python 3.9
 * poetry
-* ansible
 * awscli (with session-manager-plugin)
 * twine
 * python-dotenv
-* jupyter-notebook
 * build-essential
 * git
 * sqlite3

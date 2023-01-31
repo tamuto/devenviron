@@ -20,13 +20,11 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 RUN pip install --upgrade pip
 RUN pip install \
     poetry \
-    ansible \
     boto \
     boto3 \
     twine \
     setuptools_scm \
-    python-dotenv \
-    notebook
+    python-dotenv
 
 RUN npm install -g npm \
 &&  npm install -g @infodb/infodb-cli npm-check-updates pnpm \
