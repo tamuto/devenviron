@@ -24,7 +24,7 @@ RUN pip install \
     boto3 \
     twine \
     setuptools_scm \
-    python-dotenv
+    python-dotenv[cli]
 
 RUN npm install -g @infodb/infodb-cli@0.10.0 npm-check-updates pnpm \
 &&  poetry config virtualenvs.in-project true \
