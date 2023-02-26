@@ -12,12 +12,12 @@ touch ~/.devenviron/.npmrc
 
 mkdir -p ~/bin
 rm ~/bin/denv*
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denv
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvp
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvdb5
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvdb8
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denv_clear_podman
-wget -P ~/bin https://raw.githubusercontent.com/tamuto/devenviron/main/standard/bin/denvnote
-ln -s ~/bin/denvdb5 ~/bin/denvdb
+wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/standard/bin/denv
+wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/standard/bin/denvp
+wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/standard/bin/denvdb5
+wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/standard/bin/denvdb8
+wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/standard/bin/denv_clear_podman
+wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/standard/bin/denvnote
+ln -s ~/bin/denvdb8 ~/bin/denvdb
 
 chmod +x ~/bin/denv*
