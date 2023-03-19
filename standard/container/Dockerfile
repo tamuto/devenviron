@@ -2,8 +2,8 @@ FROM python:3.9-slim-bullseye
 
 RUN apt-get update && apt-get install -y \
     curl build-essential git sqlite3 \
-    software-properties-common gnupg sudo iputils-ping net-tools ftp \
-    default-mysql-client php p7zip-full subversion ffmpeg chromium fonts-ipafont fonts-ipaexfont \
+    software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
+    default-mysql-client php subversion ffmpeg sox chromium fonts-ipafont fonts-ipaexfont \
 &&  curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-get install -y nodejs \
 &&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 &&  rm awscliv2.zip
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
-RUN pip install --upgrade pip
+# RUN pip install --upgrade pip
 RUN pip install \
     poetry \
     boto \
@@ -26,7 +26,7 @@ RUN pip install \
     setuptools_scm \
     python-dotenv[cli]
 
-RUN npm install -g @infodb/infodb-cli@0.10.0 npm-check-updates pnpm \
+RUN npm install -g @infodb/infodb-cli@0.11.2 npm-check-updates pnpm \
 &&  poetry config virtualenvs.in-project true \
 &&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
