@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
     curl build-essential git sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
     default-mysql-client php subversion ffmpeg sox chromium fonts-ipafont fonts-ipaexfont \
+    openjdk-17-jdk-headless maven \
 &&  curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-get install -y nodejs \
 &&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
@@ -31,6 +32,9 @@ RUN npm install -g @infodb/infodb-cli@0.11.2 npm-check-updates pnpm \
 &&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+&&  /root/.cargo/bin/cargo install wasm-pack
 
 COPY resources/bash_aliases /root/.bashrc
 COPY resources/ssh-aws.sh /usr/local/bin/ssh-aws.sh
