@@ -24,7 +24,7 @@ wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.c
 ln -s ~/bin/denvdb8 ~/bin/denvdb
 
 chmod +x ~/bin/denv*
-if command -v docker &> /dev/null
+if ! command -v podman &> /dev/null
 then
     rm ~/bin/denv_clear_podman
     sed -i "s/podman/docker/" ~/bin/denv*
