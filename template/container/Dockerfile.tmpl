@@ -3,7 +3,7 @@ FROM {{BASEIMG}}
 RUN apt-get update && apt-get install -y \
     curl build-essential git sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
-    default-mysql-client php subversion ffmpeg sox fonts-ipafont fonts-ipaexfont \
+    default-mysql-client php subversion ffmpeg sox {{CHROMIUM}} fonts-ipafont fonts-ipaexfont \
     openjdk-17-jdk-headless maven
 RUN curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-get install -y nodejs \
@@ -11,7 +11,7 @@ RUN curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-add-repository "deb [arch=$(dpkg --print-architecture)] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 &&  apt-get update && apt-get install terraform \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/* \
-&&  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+&&  curl "https://awscli.amazonaws.com/awscli-exe-linux-{{ARCH}}.zip" -o "awscliv2.zip" \
 &&  7z x awscliv2.zip \
 &&  ./aws/install \
 &&  rm -rf ./aws \

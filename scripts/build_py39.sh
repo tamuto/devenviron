@@ -2,7 +2,8 @@
 set -eu
 
 mkdir -p build/resources
-sed "s/{{BASEIMG}}/python:3.9-slim-bullseye/" template/container/Dockerfile.tmpl > build/Dockerfile
+cat template/container/Dockerfile.tmpl | \
+sed -e "s/{{BASEIMG}}/python:3.9-slim-bullseye/" -e "s/{{CHROMIUM}}/chromium/" -e "s/{{ARCH}}/x86_64/" > build/Dockerfile
 
 cp template/container/resources/* build/resources/
 ${2:-podman} build -t docker.io/tamuto/devenviron:$1 build -f build/Dockerfile
