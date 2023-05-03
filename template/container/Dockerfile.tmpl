@@ -1,4 +1,4 @@
-FROM python:3.9-slim-bullseye
+FROM {{BASEIMG}}
 
 RUN apt-get update && apt-get install -y \
     curl build-essential git sqlite3 \
