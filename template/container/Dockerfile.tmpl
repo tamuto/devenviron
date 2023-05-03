@@ -3,10 +3,11 @@ FROM {{BASEIMG}}
 RUN apt-get update && apt-get install -y \
     curl build-essential git sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
-    default-mysql-client php subversion ffmpeg sox chromium fonts-ipafont fonts-ipaexfont \
-    openjdk-17-jdk-headless maven \
-&&  curl -L https://deb.nodesource.com/setup_lts.x | bash - \
+    default-mysql-client php subversion ffmpeg sox fonts-ipafont fonts-ipaexfont \
+    openjdk-17-jdk-headless maven snapd
+RUN curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-get install -y nodejs \
+&&  snap install chromium \
 &&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
 &&  apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 &&  apt-get update && apt-get install terraform \
