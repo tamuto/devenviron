@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
 RUN curl -L https://deb.nodesource.com/setup_lts.x | bash - \
 &&  apt-get install -y nodejs \
 &&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
-&&  apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+&&  apt-add-repository "deb [arch=$(dpkg --print-architecture)] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 &&  apt-get update && apt-get install terraform \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/* \
 &&  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
