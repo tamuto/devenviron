@@ -27,5 +27,5 @@ chmod +x ~/bin/denv*
 if command -v docker &> /dev/null
 then
     rm ~/bin/denv_clear_podman
-    sed -i "s/podman/docker/" ~/bin/denv*"
+    sed -i "s/podman/docker/" ~/bin/denv*
 fi

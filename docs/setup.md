@@ -10,7 +10,7 @@
 
 コマンドを実行する。
 ```
-curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/standard/setup.sh | sh
+curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/scripts/setup.sh | sh
 ```
 
 上記コマンドを実行すると以下のことが行われる。
