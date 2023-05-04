@@ -1,6 +1,11 @@
 #!/bin/bash
 if which podman > /dev/null; then
     podman pull docker.io/tamuto/devenviron:latest
+elif which docker > /dev/null; then
+    echo "docker command found."
+else
+    echo "command not found."
+    exit 1
 fi
 mkdir -p ~/.devenviron
 mkdir -p ~/.devenviron/.ssh
@@ -25,7 +30,9 @@ wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.c
 ln -s ~/bin/denvdb8 ~/bin/denvdb
 
 chmod +x ~/bin/denv*
-if which docker > /dev/null; then
+if which podman > /dev/null; then
+    # nothing to do.
+elif which docker > /dev/null; then
     rm ~/bin/denv_clear_podman
     sed -i "s/podman/docker/" ~/bin/denv*
 fi

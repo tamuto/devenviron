@@ -1,7 +1,7 @@
 #!/bin/bash
 DENV_HOST=`hostname -I | awk '{ print $1 }'`
 podman run \
-    -d --name denv --restart always \
+    -dt --name denv --restart always \
     --add-host="denv.host:$DENV_HOST" \
     -v $PWD:$PWD -w $PWD \
     -v ~/.devenviron/.gitconfig:/root/.gitconfig \
