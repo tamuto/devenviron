@@ -1,7 +1,7 @@
 #!/bin/bash
 DENV_HOST=`hostname -I | awk '{ print $1 }'`
 podman run \
-    -d --name denv --restart always \
+    --rm -it \
     --add-host="denv.host:$DENV_HOST" \
     -v $PWD:$PWD -w $PWD \
     -v ~/.devenviron/.gitconfig:/root/.gitconfig \
@@ -10,4 +10,4 @@ podman run \
     -v ~/.devenviron/.aws-credentials:/root/.aws/credentials \
     -v ~/.devenviron/.npmrc:/root/.npmrc \
     -v ~/.devenviron/.ssh:/root/.ssh \
-    tamuto/devenviron:latest
+    tamuto/devenviron:latest $*
