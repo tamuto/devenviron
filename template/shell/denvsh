@@ -1,2 +1,2 @@
 #!/bin/bash
-podman exec -it denv $*
+podman exec -it denv /bin/bash
