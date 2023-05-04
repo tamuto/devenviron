@@ -31,7 +31,7 @@ ln -s ~/bin/denvdb8 ~/bin/denvdb
 
 chmod +x ~/bin/denv*
 if which podman > /dev/null; then
-    # nothing to do.
+    echo "command OK"
 elif which docker > /dev/null; then
     rm ~/bin/denv_clear_podman
     sed -i "s/podman/docker/" ~/bin/denv*
