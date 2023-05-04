@@ -1,0 +1,7 @@
+#!/bin/bash
+set -eu
+dt=`date '+%Y%m%d'`
+dir=`pwd`
+fname=$dir/devenviron_$dt.tar.gz
+cd ~/.devenviron
+tar -zcf $fname .awsconfig .aws-credentials .gitconfig .git-credentials .npmrc --exclude=known_hosts .ssh

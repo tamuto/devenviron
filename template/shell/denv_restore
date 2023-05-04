@@ -1,0 +1,9 @@
+#!/bin/bash
+set -eu
+fname=$(cd $(dirname $1) && pwd)/$(basename $1)
+mkdir -p ~/.devenviron
+mkdir -p ~/.devenviron/.ssh
+mkdir -p ~/.devenviron/mysql_data5
+mkdir -p ~/.devenviron/mysql_data8
+cd ~/.devenviron
+tar zxvfp $fname
