@@ -1,6 +1,6 @@
 # DevEnviron
 
-ECMAScript + Pythonの開発に必要なツール群を入れたDockerイメージのプロジェクト
+* 共通した開発環境を提供するためのプロジェクト
 
 ## 関連プロジェクト
 
@@ -24,17 +24,27 @@ ECMAScript + Pythonの開発に必要なツール群を入れたDockerイメー�
 
 ## イメージ内に含まれるソフトウェア
 
-* python 3.9
-* poetry
-* awscli (with session-manager-plugin)
-* twine
-* python-dotenv
-* build-essential
-* git
-* sqlite3
-* nodejs
-* npm
-* pnpm
-* terraform
-* PHP
-* composer
+* 開発言語系
+  * python 3.9
+  * PHP
+  * Java
+  * NodeJS
+  * Rust
+* パッケージマネージャ
+  * poetry
+  * composer
+  * maven
+  * npm / pnpm
+  * cargo
+* その他
+  * awscli (with session-manager-plugin)
+  * twine
+  * python-dotenv
+  * build-essential
+  * sqlite3
+  * terraform
+  * git
+  * subversion
+  * 7z
+  * chromium
+  * ffmpeg

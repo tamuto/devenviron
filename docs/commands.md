@@ -2,18 +2,20 @@
 
 | コマンド          | 説明                                                                                      |
 | ----------------- | ----------------------------------------------------------------------------------------- |
-| denv              | 開発環境を起動する。通常はこの環境内でコマンドを実行する。                                |
-| denvp             | denvコマンドのポート開放版。サーバを起動させる場合に使用する。                            |
+| denv              | 開発環境を常駐させる。VSCodeのDev Containerで接続して開発する場合に常駐させる。           |
+| denvsh            | 常駐している開発環境のbashを起動させる。                                                  |
+| denvcli           | 旧denvコマンド。開発環境を起動する。DevContainerを使用しない場合はこちらを実行する。      |
+| denvp             | denvcliコマンドのポート開放版。サーバを起動させる場合に使用する。                         |
 | denvdb            | MySQLを起動する。denvdb5、denvdb8のいずれかのシンボリックリンク。                         |
-| denv5             | MySQL:5のイメージで起動する。                                                             |
-| denv8             | MySQL:8のイメージで起動する。                                                             |
+| denvdb5           | MySQL:5のイメージで起動する。                                                             |
+| denvdb8           | MySQL:8のイメージで起動する。                                                             |
 | denv_clear_podman | Podmanのエラーでerror joining network namespace for containerが出力する際の復旧コマンド。 |
 | denvnote          | jypyter notebookを起動する。                                                              |
 
-## denvコマンド
+## denvcliコマンド
 
 ```
-denv <コマンド>
+denvcli <コマンド>
 ```
 
 * 通常は引数を指定しない状態で起動させる。
