@@ -12,7 +12,7 @@ touch ~/.devenviron/.aws-credentials
 touch ~/.devenviron/.npmrc
 
 mkdir -p ~/bin
-rm ~/bin/denv*
+rm -f ~/bin/denv*
 wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/shell/denv
 wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/shell/denvp
 wget -P ~/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/shell/denvdb5
