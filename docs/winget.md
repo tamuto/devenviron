@@ -6,7 +6,7 @@
 * 以下のコマンドを実行する。（ubuntuのUNIX usernameおよびpasswordを設定する。）
 
 ```shell
-winget install Canonical.Ubuntu
+winget install Canonical.Ubuntu.2204
 ubuntu run exit
 ```
 
