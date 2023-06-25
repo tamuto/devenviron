@@ -27,7 +27,7 @@ RUN pip install \
     setuptools_scm \
     python-dotenv[cli]
 
-RUN npm install -g @infodb/infodb-cli@0.12.0 npm-check-updates pnpm \
+RUN npm install -g @infodb/infodb-cli@0.13.3 npm-check-updates pnpm \
 &&  poetry config virtualenvs.in-project true \
 &&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
