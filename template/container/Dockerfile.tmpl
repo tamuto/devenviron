@@ -38,6 +38,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
 
 COPY resources/bash_aliases /root/.bashrc
 COPY resources/ssh-aws.sh /usr/local/bin/ssh-aws.sh
+COPY resources/ssh-fw-aws.sh /usr/local/bin/ssh-fw-aws.sh
 
 ENTRYPOINT [""]
 CMD ["/bin/bash"]
