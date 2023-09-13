@@ -1,0 +1,31 @@
+{
+	"name": "denv",
+	"image": "tamuto/devenviron:latest",
+	"workspaceFolder": "/workspaces",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces,type=bind,consistency=delegated",
+	"mounts": [
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.ssh,target=/root/.ssh,type=bind,consistency=cached",
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.aws,target=/root/.aws,type=bind,consistency=cached",
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.gitconfig,target=/root/.gitconfig,type=bind,consistency=cached",
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.git-credentials,target=/root/.git-credentials,type=bind,consistency=cached",
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.npmrc,target=/root/.npmrc,type=bind,consistency=cached"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.flake8",
+				"dbaeumer.vscode-eslint",
+				"hashicorp.terraform",
+				"yzhang.markdown-all-in-one",
+				"bierner.markdown-mermaid",
+				"rangav.vscode-thunder-client",
+				"netcorext.uuid-generator"
+			]
+		}
+	},
+	"runArgs": [
+		"--add-host=host.docker.internal:host-gateway"
+	],
+	"remoteUser": "root"
+}
