@@ -1,5 +1,4 @@
 #/bin/bash
-
 USERPROFILE=$(cmd.exe /c echo "%USERPROFILE%" 2>/dev/null |grep : | tr -d \\r)
 USERPROFILE=$(wslpath $USERPROFILE)
 

@@ -1,31 +1,21 @@
 # DevEnviron
 
-* 共通した開発環境を提供するためのプロジェクト
+- 共通した開発環境を提供するためのプロジェクト
+- devcontainerを利用してVSCodeへの開発環境の提供を想定している
 
-## 関連プロジェクト
+## セットアップ
 
-関連するプロジェクトは以下の通り  
-それぞれのREADME参照のこと
-
-* [DevEnviron](https://github.com/tamuto/devenviron)
-  * dockerコンテナ、コマンドライン用のプロジェクト
-  * WindowsやMacでの統一した開発環境、利用しているバージョンの統一などが主目的
-* [infodb-cli](https://github.com/tamuto/infodb-cli)
-  * 主にnpm補助ツールとしての位置付け
-  * package.jsonのスクリプト機能拡充のためのプロジェクト
-* [boilerplate](https://github.com/tamuto/boilerplate)
-  * プロジェクトテンプレート
-  * infodb-cliのinitコマンドにて参照されるプロジェクト
-
-## ドキュメント
-
-* [環境構築](docs/setup.md)
-* [コマンド一覧](docs/commands.md)
+- dockerが利用できる環境が必要。
+- Docker for Desktopなども利用可能ではあるがディスクI/Oが遅いため、できればWSL2+Ubuntuを利用することを推奨する。
+- Windowsの場合は、[WSL2+Ubuntu](./docs/setup_windows.md)を参照。
+- 【後日記載】Macの場合は、Lima+Ubuntu
 
 ## イメージ内に含まれるソフトウェア
 
+将来的にはdevcontainerのfeaturesへの移行を行いたい。
+
 * 開発言語系
-  * python 3.9
+  * python 3.11
   * PHP
   * Java
   * NodeJS

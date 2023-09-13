@@ -1,1 +1,0 @@
-podman stop $(podman ps 2>&1 | grep -oE 'for container [a-f0-9]+' | awk '$0=$NF')
