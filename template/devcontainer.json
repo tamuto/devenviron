@@ -12,6 +12,36 @@
 	],
 	"customizations": {
 		"vscode": {
+			"settings": {
+				"explorer.autoReveal": false,
+				"editor.renderWhitespace": "boundary",
+				"files.insertFinalNewline": true,
+				"files.trimFinalNewlines": true,
+				"files.trimTrailingWhitespace": true,
+				"[javascript]": {
+					"editor.tabSize": 2
+				},
+				"[javascriptreact]": {
+					"editor.tabSize": 2
+				},
+				"[json]": {
+					"editor.tabSize": 2
+				},
+				"[markdown]": {
+					"editor.wordWrap": "off",
+					"files.trimTrailingWhitespace": false
+				},
+				"[typescript]": {
+					"editor.tabSize": 2
+				},
+				"[typescriptreact]": {
+					"editor.tabSize": 2
+				},
+				"workbench.editor.wrapTabs": true,
+				"explorer.confirmDragAndDrop": false,
+				"javascript.updateImportsOnFileMove.enabled": "always",
+				"typescript.updateImportsOnFileMove.enabled": "always"
+			},
 			"extensions": [
 				"ms-python.python",
 				"ms-python.flake8",
