@@ -9,5 +9,5 @@ cat template/container/Dockerfile.tmpl | sed \
 -e "s/{{SSM_ARCH}}/ubuntu_64bit/" > build/Dockerfile
 
 cp template/container/resources/* build/resources/
-${2:-podman} build -t docker.io/tamuto/devenviron:$1 build -f build/Dockerfile
-${2:-podman} tag docker.io/tamuto/devenviron:$1 docker.io/tamuto/devenviron:latest
+docker build -t docker.io/tamuto/devenviron:$1 build -f build/Dockerfile
+docker tag docker.io/tamuto/devenviron:$1 docker.io/tamuto/devenviron:latest
