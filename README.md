@@ -8,7 +8,12 @@
 - dockerが利用できる環境が必要。
 - Docker for Desktopなども利用可能ではあるがディスクI/Oが遅いため、できればWSL2+Ubuntuを利用することを推奨する。
 - Windowsの場合は、[WSL2+Ubuntu](./docs/setup_windows.md)を参照。
-- 【後日記載】Macの場合は、Lima+Ubuntu
+- 【後日記載】Macの場合は、Lima+Ubuntuを想定。
+
+## 独自コマンド
+
+- devenvironが用意する独自コマンドが存在する。
+- [こちら](./docs/commands.md)を参照。
 
 ## イメージ内に含まれるソフトウェア
 
