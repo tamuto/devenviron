@@ -9,3 +9,11 @@
 ```bash
 ./script/build_py3_11.sh <image-tag>
 ```
+
+## デプロイ
+
+- 権限を持っている場合に実行可能
+
+```bash
+./deploy.sh <image-tag>
+```

@@ -1,4 +1,2 @@
-# ${2:-podman} push docker.io/tamuto/devenviron:$1 --format v2s2
-# ${2:-podman} push docker.io/tamuto/devenviron:latest --format v2s2
-${2:-podman} push docker.io/tamuto/devenviron:$1
-${2:-podman} push docker.io/tamuto/devenviron:latest
+docker push docker.io/tamuto/devenviron:$1
+docker push docker.io/tamuto/devenviron:latest
