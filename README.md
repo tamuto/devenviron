@@ -24,17 +24,16 @@
 
 将来的にはdevcontainerのfeaturesへの移行を行いたい。
 
+- 【UPDATE】nodejs関連はコンテナから除外した。必要に応じてfeaturesで追加することを推奨する。
 * 開発言語系
   * python 3.11
   * PHP
   * Java
-  * NodeJS
   * Rust
 * パッケージマネージャ
   * poetry
   * composer
   * maven
-  * npm / pnpm
   * cargo
 * その他
   * awscli (with session-manager-plugin)

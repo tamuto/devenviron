@@ -5,3 +5,5 @@ fi
 source /usr/share/bash-completion/completions/git
 source /root/.cargo/env
 set -o noclobber
+
+alias ncu='bunx npm-check-updates'

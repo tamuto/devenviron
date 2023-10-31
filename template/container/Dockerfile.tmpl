@@ -5,9 +5,8 @@ RUN apt-get update && apt-get install -y \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
     default-mysql-client php subversion ffmpeg sox {{CHROMIUM}} fonts-ipafont fonts-ipaexfont \
     openjdk-17-jdk-headless maven jq
-RUN curl -L https://deb.nodesource.com/setup_lts.x | bash - \
-&&  apt-get install -y nodejs \
-&&  curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
+
+RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
 &&  apt-add-repository "deb [arch=$(dpkg --print-architecture)] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
 &&  apt-get update && apt-get install terraform \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/* \
@@ -27,8 +26,7 @@ RUN pip install \
     setuptools_scm \
     python-dotenv[cli]
 
-RUN npm install -g npm-check-updates pnpm \
-&&  poetry config virtualenvs.in-project true \
+RUN poetry config virtualenvs.in-project true \
 &&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
@@ -36,7 +34,7 @@ RUN npm install -g npm-check-updates pnpm \
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
 &&  /root/.cargo/bin/cargo install wasm-pack
 
-COPY resources/bash_aliases /root/.bashrc
+COPY resources/bash_aliases /root/.bash_aliases
 COPY resources/ssh-aws.sh /usr/local/bin/ssh-aws.sh
 COPY resources/ssh-fw-aws.sh /usr/local/bin/ssh-fw-aws.sh
 
