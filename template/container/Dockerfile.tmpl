@@ -28,7 +28,7 @@ RUN poetry config virtualenvs.in-project true \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
 
-COPY resources/bash_aliases /root/.bash_aliases
+COPY resources/bash_aliases /root/.bashrc
 COPY resources/ssh-aws.sh /usr/local/bin/ssh-aws.sh
 COPY resources/ssh-fw-aws.sh /usr/local/bin/ssh-fw-aws.sh
 
