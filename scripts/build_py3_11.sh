@@ -4,7 +4,6 @@ set -eu
 mkdir -p build/resources
 cat template/container/Dockerfile.tmpl | sed \
 -e "s/{{BASEIMG}}/python:3.11-slim-bullseye/" \
--e "s/{{CHROMIUM}}/chromium/" \
 -e "s/{{ARCH}}/x86_64/" \
 -e "s/{{SSM_ARCH}}/ubuntu_64bit/" > build/Dockerfile
 

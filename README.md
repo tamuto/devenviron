@@ -24,17 +24,15 @@
 
 将来的にはdevcontainerのfeaturesへの移行を行いたい。
 
-- 【UPDATE】nodejs関連はコンテナから除外した。必要に応じてfeaturesで追加することを推奨する。
+- 【UPDATE】以下のものはコンテナから除外した。必要に応じてfeaturesで追加する。
+  - nodejs
+  - PHP
+  - Java
+  - Rust
 * 開発言語系
   * python 3.11
-  * PHP
-  * Java
-  * Rust
 * パッケージマネージャ
   * poetry
-  * composer
-  * maven
-  * cargo
 * その他
   * awscli (with session-manager-plugin)
   * twine
@@ -47,3 +45,4 @@
   * 7z
   * chromium
   * ffmpeg
+  * sox

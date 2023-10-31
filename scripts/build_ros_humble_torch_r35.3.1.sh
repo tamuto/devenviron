@@ -4,7 +4,6 @@ set -eu
 mkdir -p build/resources
 cat template/container/Dockerfile.tmpl | sed \
 -e "s/{{BASEIMG}}/dustynv\/ros:humble-pytorch-l4t-r35.3.1/" \
--e "s/{{CHROMIUM}}/chromium-browser/" \
 -e "s/{{ARCH}}/aarch64/" \
 -e "s/{{SSM_ARCH}}/ubuntu_arm64/" > build/Dockerfile
 

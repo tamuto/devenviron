@@ -11,7 +11,10 @@
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.npmrc,target=/root/.npmrc,type=bind,consistency=cached"
 	],
 	"features": {
-		"ghcr.io/shyim/devcontainers-features/bun:0": {}
+		"ghcr.io/shyim/devcontainers-features/bun:0": {},
+		"ghcr.io/devcontainers/features/java:1": {},
+		"ghcr.io/devcontainers-contrib/features/maven-sdkman:2": {},
+		"ghcr.io/shyim/devcontainers-features/php:0": {}
 	},
 	"customizations": {
 		"vscode": {
