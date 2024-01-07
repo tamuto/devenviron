@@ -3,7 +3,7 @@ set -eu
 
 mkdir -p build/resources
 cat template/container/Dockerfile.tmpl | sed \
--e "s/{{BASEIMG}}/nvcr.io\/nvidia\/l4t-pytorch:r35.2.1-pth2.0-py3/" \
+-e "s/{{BASEIMG}}/dustynv\/l4t-pytorch:r36.2.0/" \
 -e "s/{{ARCH}}/aarch64/" \
 -e "s/{{SSM_ARCH}}/ubuntu_arm64/" > build/Dockerfile
 

@@ -9,4 +9,3 @@ cat template/container/Dockerfile.tmpl | sed \
 
 cp template/container/resources/* build/resources/
 docker build -t docker.io/tamuto/devenviron:$1 build -f build/Dockerfile
-docker tag docker.io/tamuto/devenviron:$1 docker.io/tamuto/devenviron:latest
