@@ -1,7 +1,7 @@
 FROM {{BASEIMG}}
 
 RUN apt-get update && apt-get install -y \
-    curl build-essential git sqlite3 \
+    curl build-essential git git-lfs sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
     default-mysql-client subversion ffmpeg sox jq
 
@@ -21,7 +21,8 @@ RUN pip install \
     boto3 \
     twine \
     setuptools_scm \
-    python-dotenv[cli]
+    python-dotenv[cli] \
+    taskipy
 
 RUN poetry config virtualenvs.in-project true \
 &&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
