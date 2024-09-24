@@ -8,13 +8,12 @@
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.aws,target=/root/.aws,type=bind,consistency=cached",
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.gitconfig,target=/root/.gitconfig,type=bind,consistency=cached",
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.git-credentials,target=/root/.git-credentials,type=bind,consistency=cached",
-		"source=${localWorkspaceFolder}/.devcontainer/denv/.npmrc,target=/root/.npmrc,type=bind,consistency=cached"
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.npmrc,target=/root/.npmrc,type=bind,consistency=cached",
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.config,target=/root/.config,type=bind,consistency=cached"
 	],
 	"features": {
 		"ghcr.io/shyim/devcontainers-features/bun:0": {},
-		"ghcr.io/devcontainers/features/java:1": {},
-		"ghcr.io/devcontainers-contrib/features/maven-sdkman:2": {},
-		"ghcr.io/shyim/devcontainers-features/php:0": {}
+		"ghcr.io/devcontainers/features/node:1": {}
 	},
 	"customizations": {
 		"vscode": {
@@ -27,7 +26,7 @@
 				"[python]": {
 					"diffEditor.ignoreTrimWhitespace": false,
 					"editor.formatOnType": true,
-					"editor.wordBasedSuggestions": false,
+					"editor.wordBasedSuggestions": "off",
 					"editor.tabSize": 4
 				},
 				"[javascript]": {
@@ -56,16 +55,15 @@
 			},
 			"extensions": [
 				"ms-python.python",
+				"ms-python.vscode-pylance",
 				"ms-python.flake8",
 				"usernamehw.errorlens",
 				"oderwat.indent-rainbow",
 				"shardulm94.trailing-spaces",
-				"dbaeumer.vscode-eslint",
 				"hashicorp.terraform",
 				"yzhang.markdown-all-in-one",
 				"bierner.markdown-mermaid",
-				"rangav.vscode-thunder-client",
-				"netcorext.uuid-generator"
+				"rangav.vscode-thunder-client"
 			]
 		}
 	},

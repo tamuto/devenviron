@@ -24,8 +24,7 @@ RUN pip install \
     python-dotenv[cli] \
     taskipy
 
-RUN poetry config virtualenvs.in-project true \
-&&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
+RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
 
