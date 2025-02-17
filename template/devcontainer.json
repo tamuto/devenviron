@@ -1,6 +1,6 @@
 {
 	"name": "denv",
-	"image": "tamuto/devenviron:latest",
+	"image": "tamuto/devenviron:0.38.0",
 	"workspaceFolder": "/workspaces",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces,type=bind,consistency=delegated",
 	"mounts": [
@@ -12,8 +12,6 @@
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.config,target=/root/.config,type=bind,consistency=cached"
 	],
 	"features": {
-		"ghcr.io/shyim/devcontainers-features/bun:0": {},
-		"ghcr.io/devcontainers/features/node:1": {}
 	},
 	"customizations": {
 		"vscode": {
