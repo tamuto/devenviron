@@ -5,8 +5,9 @@ RUN apt-get update && apt-get install -y \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
     default-mysql-client subversion ffmpeg sox jq
 
-RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
-&&  apt-add-repository "deb [arch=$(dpkg --print-architecture)] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null \
+&&  gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint \
+&&  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list \
 &&  apt-get update && apt-get install terraform \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/* \
 &&  curl "https://awscli.amazonaws.com/awscli-exe-linux-{{ARCH}}.zip" -o "awscliv2.zip" \
@@ -14,6 +15,10 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - \
 &&  ./aws/install \
 &&  rm -rf ./aws \
 &&  rm awscliv2.zip
+
+RUN curl https://get.volta.sh | bash \
+&&  . ~/.bashrc \
+&&  volta install node pnpm
 
 RUN pip install \
     poetry \
@@ -24,8 +29,7 @@ RUN pip install \
     python-dotenv[cli] \
     taskipy
 
-RUN poetry config virtualenvs.in-project true \
-&&  curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
+RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
 

@@ -1,3 +1,6 @@
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"
+
 if [ -e /etc/bash_completion.d/git-prompt ]; then
     source /etc/bash_completion.d/git-prompt
     PS1='\[\e]0;\w\a\]${debian_chroot:+($debian_chroot)}\[\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1 " (%s)") \n\$ '
@@ -5,4 +8,4 @@ fi
 source /usr/share/bash-completion/completions/git
 set -o noclobber
 
-alias ncu='bunx npm-check-updates'
+alias ncu='pnpx npm-check-updates'
