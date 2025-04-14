@@ -4,6 +4,7 @@ set -eu
 mkdir -p .devcontainer/denv
 mkdir -p .devcontainer/denv/.ssh
 mkdir -p .devcontainer/denv/.aws
+mkdir -p .devcontainer/denv/.config
 
 touch .devcontainer/denv/.aws/config
 touch .devcontainer/denv/.aws/credentials
