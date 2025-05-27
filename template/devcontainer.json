@@ -1,6 +1,8 @@
 {
 	"name": "denv",
-	"image": "tamuto/devenviron:0.38.0",
+	"build": {
+		"dockerfile": "./Dockerfile"
+	},
 	"workspaceFolder": "/workspaces",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces,type=bind,consistency=delegated",
 	"mounts": [
