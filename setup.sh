@@ -13,6 +13,7 @@ touch .devcontainer/denv/.git-credentials
 touch .devcontainer/denv/.npmrc
 
 wget -P .devcontainer --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/devcontainer.json
+wget -P .devcontainer --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/Dockerfile
 
 wget -P /usr/local/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/shell/denvdb8
 wget -P /usr/local/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/shell/denvtime
