@@ -1,1 +1,1 @@
-FROM tamuto/devenviron:0.39.0
+FROM tamuto/devenviron:0.40.0

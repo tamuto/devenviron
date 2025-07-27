@@ -3,7 +3,7 @@ FROM {{BASEIMG}}
 RUN apt-get update && apt-get install -y \
     curl build-essential git git-lfs sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
-    default-mysql-client subversion ffmpeg sox jq
+    default-mysql-client subversion ffmpeg sox jq zip
 
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null \
 &&  gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint \
