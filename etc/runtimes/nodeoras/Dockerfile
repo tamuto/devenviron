@@ -1,6 +1,9 @@
-FROM node:22-bookworm-slim
+FROM python:3.12-slim-bookworm
 
-RUN apt-get update && apt-get install -y curl p7zip-full
+RUN apt-get update && apt-get install -y curl p7zip-full git
+
+RUN curl https://get.volta.sh | bash \
+&&  /root/.volta/bin/volta install node pnpm
 
 RUN curl -LO "https://github.com/oras-project/oras/releases/download/v1.2.3/oras_1.2.3_linux_amd64.tar.gz" \
 &&  mkdir -p oras-install/ \
@@ -19,3 +22,12 @@ RUN curl -sL "https://github.com/google/go-containerregistry/releases/download/v
 &&  mv crane /usr/local/bin/crane \
 &&  rm go-containerregistry.tar.gz \
 &&  rm README.md gcrane krane LICENSE
+
+RUN pip install \
+    poetry \
+    boto \
+    boto3 \
+    twine \
+    setuptools_scm \
+    python-dotenv[cli] \
+    taskipy

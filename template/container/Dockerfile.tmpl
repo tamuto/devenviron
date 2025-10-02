@@ -26,7 +26,8 @@ RUN pip install \
     twine \
     setuptools_scm \
     python-dotenv[cli] \
-    taskipy
+    taskipy \
+    uv
 
 RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
