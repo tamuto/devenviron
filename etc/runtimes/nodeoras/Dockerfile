@@ -1,6 +1,6 @@
 FROM python:3.12-slim-bookworm
 
-RUN apt-get update && apt-get install -y curl p7zip-full git
+RUN apt-get update && apt-get install -y curl p7zip-full git zip
 
 RUN curl https://get.volta.sh | bash \
 &&  /root/.volta/bin/volta install node pnpm
