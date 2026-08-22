@@ -29,7 +29,9 @@ x-denv-cc-remote: &denv-cc-remote
   tty: true
   volumes:
     # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
-    # サーバの作業ディレクトリは working_dir で切り替える。
+    # 全サービスがツリー全体を同じようにマウントする。
+    # working_dir はそのコンテナのセッションが始まる位置を選ぶだけであり、
+    # マウント範囲を絞るものではない。
     - ${WORKSPACES_ROOT:-/root/workspaces}:/workspaces
     # Claude Code の認証情報・設定・セッション履歴。
     # .claude.json には組織情報(oauthAccount)と機能フラグのキャッシュが入っており、
@@ -59,24 +61,27 @@ x-denv-cc-remote: &denv-cc-remote
     # また ANTHROPIC_BASE_URL を api.anthropic.com 以外へ向けると利用できない。
     - TZ=${TZ:-Asia/Tokyo}
 
+# ■ サービスはプロジェクトごとに 1 つずつ「並べて」定義する
+#
+# compose はコンテナを「compose プロジェクト名 + サービス名」で識別する。
+# そのため 1 つのサービスの working_dir を環境変数で切り替えても、
+# 2 回目の up は同じサービスとみなされて既存コンテナが作り直される。
+# つまり 1 つ目が落ちて 2 つ目に置き換わるだけで、複数は起動しない。
+# 複数動かしたい場合は、必ずサービスを増やすこと。
+
 services:
-  # プロジェクトごとに 1 つ定義する。
-  # remote-control のサーバは 1 つにつき 1 ディレクトリしか扱えないため、
-  # /workspaces のような「リポジトリの親ディレクトリ」では起動しない。
-  # 公式ドキュメントにも start Remote Control from a project directory とある。
-  #
-  # PROJECT で対象を切り替えられる。書き換えて固定してもよい。
-  #   PROJECT=myproject docker compose up -d
+  # 実際のプロジェクトに合わせて、サービス名・container_name・
+  # working_dir・--name を書き換えて使う。
   #
   # 初回のログイン・ワークスペース信頼の承認・MCP 登録もこのサービスで行う。
-  #   PROJECT=myproject docker compose run --rm denv-cc-remote claude
-  denv-cc-remote:
+  #   docker compose run --rm myproject claude
+  myproject:
     <<: *denv-cc-remote
-    container_name: denv-cc-${PROJECT:-myproject}
-    working_dir: /workspaces/${PROJECT:-myproject}
-    command: ["claude", "remote-control", "--name", "${PROJECT:-myproject}", "--spawn", "session"]
+    container_name: denv-cc-myproject
+    working_dir: /workspaces/myproject
+    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 
-  # --- 2 つ目以降 ---
+  # --- 2 つ目以降はサービスを増やす ---
   #
   # サービス 1 つにつきコンテナが 1 つ起動する。
   # 3 つ定義すれば claude remote-control が 3 プロセス並行で動く。

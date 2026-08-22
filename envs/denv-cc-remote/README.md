@@ -54,7 +54,29 @@ mkdir -p $WORKSPACES_ROOT/.devcontainer/denv/.claude
 
 devenviron の `setup.sh` を実行済みであれば、この2つは作成されている。
 
-### 3. イメージをビルドする
+### 3. プロジェクトのサービスを定義する
+
+`docker-compose.yaml` の `myproject` サービスを、
+実際のプロジェクトに合わせて書き換える。
+
+```yaml
+  myproject:
+    <<: *denv-cc-remote
+    container_name: denv-cc-myproject
+    working_dir: /workspaces/myproject
+    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+```
+
+**以降の手順に出てくる `myproject` は、自分で付けたサービス名に読み替えること。**
+
+複数のプロジェクトを扱う場合は、サービスを増やす。
+1 つのサービスを環境変数で切り替える形にはしないこと。
+compose はコンテナを「compose プロジェクト名 + サービス名」で識別するため、
+同じサービスに対して 2 回目の `up` を実行すると
+既存コンテナが作り直され、**1 つ目が落ちて 2 つ目に置き換わる**。
+詳しくは「複数プロジェクトを扱う」を参照。
+
+### 4. イメージをビルドする
 
 ```bash
 docker compose build
@@ -64,14 +86,14 @@ docker compose build
 環境の実体はベースイメージ `tamuto/devenviron` 側で固定されているため、
 誰がいつビルドしても同じ開発環境になる。
 
-### 4. 初回のログインとワークスペース信頼の承認
+### 5. 初回のログインとワークスペース信頼の承認
 
 remote-control のサーバモードは、ログイン済みでないと起動時にエラーで終了する。
 またワークスペースの信頼を一度承認しておく必要がある。
 いずれも対話操作が必要なため、初回のみ通常のセッションを起動して済ませる。
 
 ```bash
-PROJECT=myproject docker compose run --rm denv-cc-remote claude
+docker compose run --rm myproject claude
 ```
 
 起動したら以下を行う。
@@ -87,7 +109,7 @@ PROJECT=myproject docker compose run --rm denv-cc-remote claude
 認証情報と組織情報はホスト側の `.devcontainer/denv/.claude` および
 `.devcontainer/denv/.claude.json` に保存されるため、次回以降このやり取りは不要になる。
 
-### 5. MCP サーバを登録する
+### 6. MCP サーバを登録する
 
 MCP の登録内容はイメージには含めていない。
 ログインと同じく初回のみの手作業とし、
@@ -104,7 +126,7 @@ MCP の登録内容はイメージには含めていない。
 同梱している Serena を登録する場合は以下。
 
 ```bash
-docker compose run --rm denv-cc-remote \
+docker compose run --rm myproject \
   claude mcp add --scope user serena -- \
   serena start-mcp-server --context claude-code --project-from-cwd
 ```
@@ -112,14 +134,14 @@ docker compose run --rm denv-cc-remote \
 任意の MCP を追加する場合も同じ要領で登録できる。
 
 ```bash
-docker compose run --rm denv-cc-remote \
+docker compose run --rm myproject \
   claude mcp add --scope user <name> -- npx -y <package>
 ```
 
 登録済みの一覧は以下で確認できる。
 
 ```bash
-docker compose run --rm denv-cc-remote claude mcp list
+docker compose run --rm myproject claude mcp list
 ```
 
 **注意**: 永続化されるのは登録内容であってツール本体ではない。
@@ -129,7 +151,7 @@ docker compose run --rm denv-cc-remote claude mcp list
 起動のたびにコマンドが解決される形であれば問題なく使える。
 常設したいツールがある場合は `Dockerfile` に追加する。
 
-### 6. 常駐させる
+### 7. 常駐させる
 
 ```bash
 docker compose up -d
@@ -142,7 +164,7 @@ docker compose up -d
 docker compose logs -f
 ```
 
-### 7. 接続する
+### 8. 接続する
 
 [claude.ai/code](https://claude.ai/code) またはスマートフォンの Claude アプリから、
 セッション一覧に表示されるセッションを開く。
@@ -202,8 +224,8 @@ serena start-mcp-server --context claude-code --project-from-cwd
 登録内容を確認したい場合は以下。
 
 ```bash
-docker compose exec denv-cc-remote claude mcp list
-docker compose exec denv-cc-remote claude mcp get serena
+docker compose exec myproject claude mcp list
+docker compose exec myproject claude mcp get serena
 ```
 
 ### バージョンについて
@@ -224,7 +246,7 @@ Serena は自動更新されないため、ビルドした時期によってバ�
 記録が必要な構成はベースイメージ側が `/etc/devenviron/manifest.txt` に持つ。
 
 ```bash
-docker compose exec denv-cc-remote cat /etc/devenviron/manifest.txt
+docker compose exec myproject cat /etc/devenviron/manifest.txt
 ```
 
 ## トラブルシューティング
@@ -246,7 +268,7 @@ Claude Code は認証トークンを `~/.claude/.credentials.json` に、
 ls -la $WORKSPACES_ROOT/.devcontainer/denv/.claude.json
 
 # コンテナ内から中身が見えているか
-docker compose exec denv-cc-remote sh -c 'ls -la /root/.claude.json; wc -c /root/.claude.json'
+docker compose exec myproject sh -c 'ls -la /root/.claude.json; wc -c /root/.claude.json'
 ```
 
 `.claude.json` が 0 バイトのままであれば、セットアップ手順4のログインをやり直す。
@@ -262,7 +284,7 @@ docker compose exec denv-cc-remote sh -c 'ls -la /root/.claude.json; wc -c /root
 まず登録されているかを確認する。
 
 ```bash
-docker compose exec denv-cc-remote claude mcp list
+docker compose exec myproject claude mcp list
 ```
 
 何も出てこない場合はセットアップ手順5を実施していない。
@@ -276,14 +298,14 @@ docker compose exec denv-cc-remote claude mcp list
 cat $WORKSPACES_ROOT/.devcontainer/denv/.claude.json | head -c 200
 
 # コンテナ内から同じ内容が見えているか
-docker compose exec denv-cc-remote head -c 200 /root/.claude.json
+docker compose exec myproject head -c 200 /root/.claude.json
 ```
 
 MCP は登録されているが起動に失敗する場合は、
 そのコマンドがコンテナ内で解決できるかを確認する。
 
 ```bash
-docker compose exec denv-cc-remote which serena
+docker compose exec myproject which serena
 ```
 
 `/root/.local` は永続化していないため、
@@ -336,6 +358,36 @@ docker compose up -d
 
 `--spawn session` は「1 コンテナ = 1 プロジェクト = 1 セッション」で、
 従来の CLI と同じ感覚で扱える。まずはこの形を勧める。
+
+### やってはいけない: 1サービスを環境変数で切り替える
+
+`working_dir` を環境変数で差し替えて `up` を繰り返す形にはしないこと。
+
+compose はコンテナを **「compose プロジェクト名 + サービス名」**で識別する。
+compose プロジェクト名は既定でディレクトリ名であり、環境変数とは無関係である。
+そのため同じサービスに対して 2 回目の `up` を実行すると、
+設定が変わったと判断されて**既存コンテナが停止・削除され、作り直される**。
+
+結果として **1 つ目が落ちて 2 つ目に置き換わるだけ**で、複数は起動しない。
+複数動かしたいのであれば、サービスを増やす以外にない。
+
+### マウントと衝突についての整理
+
+```
+ホスト ${WORKSPACES_ROOT}  →  各コンテナの /workspaces （全サービス共通・ツリー全体）
+working_dir                →  そのコンテナのセッションが始まる位置を選ぶだけ
+```
+
+**全コンテナが同じツリー全体をマウントしている。**
+`working_dir` は開始位置の指定であって、見える範囲を絞るものではない。
+
+衝突は2階層で起こりうる。
+
+- **1 サーバ内**: `--spawn same-dir` の複数セッションは同じディレクトリを共有するため、
+  同じファイルを編集すると衝突する。`--spawn session` または `worktree` なら起きない
+- **サービス間**: 別のコンテナでも、同じフォルダを指していれば当然衝突する。
+  `working_dir` を分けていても書き込み自体はツリー全体に届くため、
+  どのフォルダを担当させるかは運用で決めることになる
 
 ### 1プロジェクト内で並行作業する
 
