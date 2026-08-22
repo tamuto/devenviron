@@ -15,8 +15,19 @@
 # 複数動かしたい場合は、必ずサービスを増やすこと。
 
 services:
-  # 実際のプロジェクトに合わせて、サービス名・container_name・
-  # working_dir・--name を書き換えて使う。
+  # 実際のプロジェクトに合わせて、サービス名・hostname・working_dir を
+  # 書き換えて使う。
+  #
+  # hostname はモバイルや claude.ai に表示されるデバイス名になる。
+  # 指定しないとコンテナ ID が表示されて判別できない。
+  #
+  # compose にはサービス名を参照する変数がないため自動では引けない。
+  # ${...} の展開は環境変数と .env しか読まないためである。
+  # 素直に同じ名前を書くこと。
+  #
+  # container_name は指定しない。省略すると compose が
+  # <compose プロジェクト名>-<サービス名>-1 を自動で付ける。
+  # docker compose exec / run はサービス名で指定するため支障はない。
   #
   # 初回のログイン・ワークスペース信頼の承認・MCP 登録もこのサービスで行う。
   #   docker compose run --rm myproject claude
@@ -24,7 +35,7 @@ services:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-myproject
+    hostname: myproject
     working_dir: /workspaces/myproject
     command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 
@@ -41,7 +52,7 @@ services:
   #   extends:
   #     file: compose.base.yaml
   #     service: denv-cc-remote
-  #   container_name: denv-cc-another
+  #   hostname: another
   #   working_dir: /workspaces/another
   #   command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
 
@@ -55,7 +66,7 @@ services:
   #   extends:
   #     file: compose.base.yaml
   #     service: denv-cc-remote
-  #   container_name: denv-cc-parallel
+  #   hostname: parallel
   #   working_dir: /workspaces/parallel
   #   command: ["claude", "remote-control", "--name", "parallel", "--spawn", "worktree"]
 

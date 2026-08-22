@@ -21,6 +21,11 @@ services:
       dockerfile: Dockerfile
     stdin_open: true
     tty: true
+    # モバイルや claude.ai に表示されるデバイス名になる。
+    # 指定しないと Docker が既定でコンテナ ID を hostname にするため、
+    # 16進の羅列が表示されて判別できない。
+    # サービス側で上書きすればプロジェクト単位で見分けられる。
+    hostname: ${DENV_HOSTNAME:-denv}
     volumes:
       # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
       # 全サービスがツリー全体を同じようにマウントする。

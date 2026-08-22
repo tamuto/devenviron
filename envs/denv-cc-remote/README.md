@@ -67,10 +67,31 @@ cp docker-compose.yaml.sample docker-compose.yaml
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-myproject
+    hostname: myproject
     working_dir: /workspaces/myproject
     command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 ```
+
+`hostname` は**モバイルや claude.ai に表示されるデバイス名**になる。
+指定しないと Docker が既定でコンテナ ID を hostname にするため、
+16進の羅列が表示されて判別できない。
+`compose.base.yaml` に既定値 `denv` を入れてあるが、
+サービスごとに上書きするとプロジェクト単位で見分けられる。
+
+**compose にはサービス名を参照する変数がない**ため自動では引けない。
+`${...}` の展開は環境変数と `.env` しか読まず、
+サービス名を指す変数は用意されていない。
+（compose はサービス名をコンテナ間 DNS の**ネットワークエイリアス**としては設定するが、
+これは `/etc/hostname` とは別物で、Claude Code が読むのは後者である。）
+
+YAML のアンカーで共通化する手もあるが、
+アンカー名と値の両方を書くことになり記述量はかえって増えるため採用していない。
+素直に同じ名前を書くのがよい。
+
+一方 `container_name` は指定していない。省略すると compose が
+`<compose プロジェクト名>-<サービス名>-1` を自動で付ける。
+`docker compose exec` / `run` はサービス名で指定するため支障はない。
+固定したい場合は `container_name:` を足せばよい。
 
 ファイルは以下のように分かれている。
 
@@ -244,6 +265,24 @@ docker compose exec myproject claude mcp list
 docker compose exec myproject claude mcp get serena
 ```
 
+### モバイルでの表示名
+
+表示名には2種類ある。混同しやすいので整理しておく。
+
+| 表示 | 決まり方 | 指定方法 |
+| --- | --- | --- |
+| デバイス名 | コンテナの hostname | compose の `hostname:` |
+| セッション名 | `--name` の値。未指定なら `<hostname>-graceful-unicorn` のような自動生成 | `--name` |
+
+`--name` を指定していれば、セッション名にホスト名は使われない。
+それでもデバイス名は hostname のままなので、
+`hostname:` を指定しないとコンテナ ID が表示される。
+
+自動生成名の接頭辞だけを変えたい場合は
+`--remote-control-session-name-prefix`（環境変数
+`CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX`）を使う。
+ただしこれはセッション名にしか効かず、デバイス名は変わらない。
+
 ### バージョンについて
 
 **このイメージ自身はバージョン番号を持たない。**
@@ -294,6 +333,34 @@ docker compose exec myproject sh -c 'ls -la /root/.claude.json; wc -c /root/.cla
 - `DISABLE_TELEMETRY` / `DO_NOT_TRACK`
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`
 - `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けている
+
+### 2つ目以降のサービスでセッションが開始しない
+
+**ワークスペース信頼が未承認である可能性が高い。**
+信頼はディレクトリ単位で管理され、親ディレクトリの承認も、
+同じリポジトリの別 worktree の承認も引き継がれない。
+たとえば `/workspaces/foo` を承認済みでも、
+その worktree である `/workspaces/foo.feature-xxx` は別途承認が必要になる。
+
+承認済みかどうかは `.claude.json` で確認できる。
+
+```bash
+python3 -c "
+import json
+d = json.load(open('$WORKSPACES_ROOT/.devcontainer/denv/.claude.json'))
+for path, v in d.get('projects', {}).items():
+    print(v.get('hasTrustDialogAccepted'), path)
+"
+```
+
+対象のディレクトリが一覧に無い、または `False` であれば未承認である。
+そのサービスを指定して一度だけ対話で起動し、承認する。
+
+```bash
+docker compose run --rm <サービス名> claude
+#   → ワークスペースの信頼を承認 → /exit
+docker compose up -d
+```
 
 ### MCP サーバが認識されない
 
@@ -356,7 +423,7 @@ services:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-myproject
+    hostname: myproject
     working_dir: /workspaces/myproject
     command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 
@@ -364,7 +431,7 @@ services:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-another
+    hostname: another
     working_dir: /workspaces/another
     command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
 
@@ -383,6 +450,16 @@ docker compose up -d
 
 これで claude.ai のセッション一覧に `myproject` と `another` が並び、
 それぞれからセッションを開始できる。
+
+**プロジェクトを追加したら、そのディレクトリの信頼承認を必ず行うこと。**
+ワークスペース信頼はディレクトリ単位で、親ディレクトリや
+同じリポジトリの別 worktree の承認は引き継がれない。
+未承認のままだとセッションが開始しない。
+
+```bash
+docker compose run --rm another claude
+#   → ワークスペースの信頼を承認 → /exit
+```
 
 `--spawn session` は「1 コンテナ = 1 プロジェクト = 1 セッション」で、
 従来の CLI と同じ感覚で扱える。まずはこの形を勧める。
