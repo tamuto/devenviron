@@ -17,7 +17,6 @@ docker build \
     --build-arg DENV_REVISION="$DENV_REVISION" \
     --build-arg DENV_CREATED="$DENV_CREATED" \
     -t docker.io/tamuto/devenviron:$1 build -f build/Dockerfile
-docker tag docker.io/tamuto/devenviron:$1 docker.io/tamuto/devenviron:latest
 
 # ビルド時点の構成をmanifests/へ記録する
 ./scripts/manifest.sh "$1"
