@@ -18,8 +18,8 @@ VSCode の devcontainer と同じ土台の上で動く。
 ## 同梱しているもの
 
 - **Claude Code** … ネイティブインストーラで導入。バックグラウンドで自動更新される。
-- **Serena MCP** … セマンティックなコード検索・編集ツールを提供する MCP サーバ。
-  ユーザスコープで登録済みのため、追加の設定なしに利用できる。
+- **Serena** … セマンティックなコード検索・編集ツールを提供する MCP サーバ。
+  ツール本体のみ同梱している。MCP としての登録はセットアップ手順5で行う。
 
 ## 前提
 
@@ -46,8 +46,11 @@ Claude Code の設定と認証情報はホスト側へ保存する。
 
 ```bash
 mkdir -p $WORKSPACES_ROOT/.devcontainer/denv/.claude
-touch    $WORKSPACES_ROOT/.devcontainer/denv/.claude.json
+[ -s $WORKSPACES_ROOT/.devcontainer/denv/.claude.json ] \
+  || echo '{}' > $WORKSPACES_ROOT/.devcontainer/denv/.claude.json
 ```
+
+`.claude.json` は空ファイルだと JSON として不正になるため `{}` で初期化する。
 
 devenviron の `setup.sh` を実行済みであれば、この2つは作成されている。
 
@@ -80,7 +83,44 @@ docker compose run --rm denv-cc-remote claude
 認証情報と組織情報はホスト側の `.devcontainer/denv/.claude` および
 `.devcontainer/denv/.claude.json` に保存されるため、次回以降このやり取りは不要になる。
 
-### 5. 常駐させる
+### 5. MCP サーバを登録する
+
+MCP の登録内容はイメージには含めていない。
+ログインと同じく初回のみの手作業とし、
+**利用者が好きな MCP を自由に入れられる**ようにしてある。
+
+登録内容はホスト側の `.claude.json` に保存されるため、
+一度登録すればコンテナを作り直しても残る。
+
+同梱している Serena を登録する場合は以下。
+
+```bash
+docker compose run --rm denv-cc-remote \
+  claude mcp add --scope user serena -- \
+  serena start-mcp-server --context claude-code --project-from-cwd
+```
+
+任意の MCP を追加する場合も同じ要領で登録できる。
+
+```bash
+docker compose run --rm denv-cc-remote \
+  claude mcp add --scope user <name> -- npx -y <package>
+```
+
+登録済みの一覧は以下で確認できる。
+
+```bash
+docker compose run --rm denv-cc-remote claude mcp list
+```
+
+**注意**: 永続化されるのは登録内容であってツール本体ではない。
+コンテナ内で `uv tool install` や `npm install -g` を実行しても
+`/root/.local` は永続化していないため、コンテナを作り直すと消える。
+`npx -y <package>` や `uvx <package>` のように
+起動のたびにコマンドが解決される形であれば問題なく使える。
+常設したいツールがある場合は `Dockerfile` に追加する。
+
+### 6. 常駐させる
 
 ```bash
 docker compose up -d
@@ -93,7 +133,7 @@ docker compose up -d
 docker compose logs -f
 ```
 
-### 6. 接続する
+### 7. 接続する
 
 [claude.ai/code](https://claude.ai/code) またはスマートフォンの Claude アプリから、
 セッション一覧に表示されるセッションを開く。
@@ -128,13 +168,13 @@ remote-control は claude.ai への外向き接続で成立する。
 
 ### Serena MCP について
 
-イメージに同梱済み。**登録はコンテナ起動時に entrypoint が行う。**
+ツール本体のみイメージに同梱している。
+**MCP としての登録は利用者が行う**（セットアップ手順5）。
 
-ユーザスコープの MCP 登録先は `~/.claude.json` だが、
-このファイルは組織情報の永続化のためホスト側から bind mount している。
-そのためイメージへ焼き込んだ登録は覆い隠されてしまう。
-起動のたびに登録状態を確認して不足を補う方式にしているため、
-イメージを更新した場合も既存の環境へ反映される。
+イメージ側で登録しないのは、ユーザスコープの MCP 登録先が `~/.claude.json` であり、
+このファイルを組織情報の永続化のためホスト側から bind mount しているためである。
+イメージへ焼き込んでも覆い隠されて効かない。
+また登録内容を利用者が自由に決められる方が都合がよい。
 
 接続状態は Claude Code 内で `/mcp` を実行すると確認できる。
 
@@ -208,7 +248,7 @@ docker compose exec denv-cc-remote sh -c 'ls -la /root/.claude.json; wc -c /root
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`
 - `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けている
 
-### Serena が MCP として認識されない
+### MCP サーバが認識されない
 
 まず登録されているかを確認する。
 
@@ -216,24 +256,30 @@ docker compose exec denv-cc-remote sh -c 'ls -la /root/.claude.json; wc -c /root
 docker compose exec denv-cc-remote claude mcp list
 ```
 
-`serena` が出てこない場合、起動時の登録に失敗している。
-entrypoint は失敗時に警告を出すため、ログを確認する。
+何も出てこない場合はセットアップ手順5を実施していない。
+
+登録したのに残らない場合は、`.claude.json` の永続化が効いていない。
+ユーザスコープの登録内容はこのファイルに保存されるため、
+永続化されていないとコンテナを作り直すたびに消える。
 
 ```bash
-docker compose logs denv-cc-remote | grep denv-cc-remote:
+# ホスト側。ディレクトリになっていたら誤り。{} だけなら未登録
+cat $WORKSPACES_ROOT/.devcontainer/denv/.claude.json | head -c 200
+
+# コンテナ内から同じ内容が見えているか
+docker compose exec denv-cc-remote head -c 200 /root/.claude.json
 ```
 
-手動で登録し直す場合は以下。
+MCP は登録されているが起動に失敗する場合は、
+そのコマンドがコンテナ内で解決できるかを確認する。
 
 ```bash
-docker compose exec denv-cc-remote \
-  claude mcp add --scope user serena -- \
-  serena start-mcp-server --context claude-code --project-from-cwd
+docker compose exec denv-cc-remote which serena
 ```
 
-登録内容は `~/.claude.json`（ホスト側の
-`.devcontainer/denv/.claude.json`）に保存される。
-このファイルが 0 バイトのままであれば、bind mount が効いていない。
+`/root/.local` は永続化していないため、
+コンテナ内で後から `uv tool install` や `npm install -g` で入れたツールは
+コンテナを作り直すと消える。常設したいものは `Dockerfile` に追加すること。
 
 ## サーバモードの主なオプション
 

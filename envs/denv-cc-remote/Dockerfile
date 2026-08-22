@@ -29,13 +29,16 @@ ENV PATH="/root/.local/bin:${PATH}"
 RUN uv tool install -p 3.13 serena-agent \
 &&  serena init < /dev/null
 
-# MCP サーバの登録はビルド時に行わない。
-# ユーザスコープの登録先は ~/.claude.json だが、このファイルは
-# 組織情報を永続化するためホスト側から bind mount しており、
-# イメージに焼いた内容が覆い隠されてしまうため。
-# 代わりに entrypoint で起動のたびに登録状態を確認する。
-COPY entrypoint.sh /usr/local/bin/denv-cc-entrypoint
-RUN chmod +x /usr/local/bin/denv-cc-entrypoint
+# MCP サーバの登録はイメージ側では行わない。
+# ユーザスコープの登録先は ~/.claude.json であり、
+# このファイルは組織情報の永続化のためホスト側から bind mount している。
+# イメージに焼いた登録は覆い隠されてしまううえ、
+# 登録内容を利用者が自由に決められた方が都合がよい。
+# 登録はログインと同じく初回のみの手作業とする(README.md を参照)。
+#
+# ここで導入するのはツール本体だけである。
+# コンテナ内で uv tool install や npm install -g を実行しても
+# /root/.local は永続化していないため、作り直すと消える点に注意。
 
 # 初回利用時に対象言語の language server を取得するため、
 # MCP の起動が既定のタイムアウトに収まらないことがある。
@@ -45,5 +48,4 @@ WORKDIR /workspaces
 
 # サーバモード。claude.ai への外向き接続を待ち受ける。
 # 事前に一度ログインとワークスペース信頼の承認が必要。README.md を参照。
-ENTRYPOINT ["/usr/local/bin/denv-cc-entrypoint"]
 CMD ["claude", "remote-control"]
