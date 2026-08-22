@@ -48,4 +48,4 @@ WORKDIR /workspaces
 
 # サーバモード。claude.ai への外向き接続を待ち受ける。
 # 事前に一度ログインとワークスペース信頼の承認が必要。README.md を参照。
-CMD ["claude", "remote-control", "--no-create-session-in-dir"]
+CMD ["claude", "remote-control"]

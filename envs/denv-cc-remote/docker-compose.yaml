@@ -73,12 +73,15 @@ services:
 
   # --- 以下、プロジェクトごとのサーバ ---
   #
+  # サービス1つにつきコンテナが1つ起動する。
+  # プロジェクトを3つ定義すれば claude remote-control が3プロセス並行で動く。
+  # それぞれがメモリを使うため、常用するものだけ定義するとよい。
+  #
   # --name でセッション一覧に出る名前を指定する。
   # 指定しない場合はコンテナのホスト名を接頭辞にした自動生成名になる。
   #
-  # 対象が git リポジトリであれば --spawn worktree を付けると、
-  # スマホから作った各セッションが個別の worktree を持ち、
-  # 同じファイルを取り合わなくなる。
+  # --spawn session を付けると「1コンテナ = 1プロジェクト = 1セッション」となり、
+  # 従来の CLI と同じ感覚で扱える。まずはこの形を勧める。
   #
   # 実際のプロジェクトに合わせて名前とパスを書き換えること。
 
@@ -86,13 +89,19 @@ services:
   #   <<: *denv-cc-remote
   #   container_name: denv-cc-myproject
   #   working_dir: /workspaces/myproject
-  #   command: ["claude", "remote-control", "--name", "myproject", "--spawn", "worktree"]
-  #
+  #   command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+
+  # 1つのプロジェクト内で並行作業したい場合は --spawn worktree にする。
+  # スマホから作った各セッションを Claude Code が自動で
+  # .claude/worktrees/<name>/ に切り出すため、フォルダを事前に分ける必要はない。
+  # ただし worktree は fresh checkout なので node_modules や .venv は無く、
+  # .env などの gitignore されたファイルも .worktreeinclude を置かないと来ない。
+
   # another:
   #   <<: *denv-cc-remote
   #   container_name: denv-cc-another
   #   working_dir: /workspaces/another
-  #   command: ["claude", "remote-control", "--name", "another"]
+  #   command: ["claude", "remote-control", "--name", "another", "--spawn", "worktree"]
 
 volumes:
   claude-versions:
