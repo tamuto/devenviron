@@ -56,16 +56,32 @@ devenviron の `setup.sh` を実行済みであれば、この2つは作成さ�
 
 ### 3. プロジェクトのサービスを定義する
 
-`docker-compose.yaml` の `myproject` サービスを、
-実際のプロジェクトに合わせて書き換える。
+雛形をコピーして、実際のプロジェクトに合わせて書き換える。
+
+```bash
+cp docker-compose.yaml.sample docker-compose.yaml
+```
 
 ```yaml
   myproject:
-    <<: *denv-cc-remote
+    extends:
+      file: compose.base.yaml
+      service: denv-cc-remote
     container_name: denv-cc-myproject
     working_dir: /workspaces/myproject
     command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 ```
+
+ファイルは以下のように分かれている。
+
+| ファイル | 内容 | git |
+| --- | --- | --- |
+| `compose.base.yaml` | 共通設定（イメージ・マウント・環境変数） | 管理する |
+| `docker-compose.yaml.sample` | 雛形 | 管理する |
+| `docker-compose.yaml` | **各自のプロジェクト定義** | `.gitignore` 済み |
+
+自分の定義を書いてもコミットされないため、
+リポジトリ内でそのまま作業できる。
 
 **以降の手順に出てくる `myproject` は、自分で付けたサービス名に読み替えること。**
 
@@ -331,23 +347,35 @@ so start Remote Control from a project directory.」とあり、
 3 つ定義すれば `claude remote-control` が 3 プロセス並行で動くため、
 常用するものだけ定義するとよい。
 
-`docker-compose.yaml` に YAML アンカーを用意してあるので、
-共通設定を書き写す必要はない。
+共通設定は `compose.base.yaml` にあり、`extends` で引き継ぐため、
+サービスごとに書き写す必要はない。
 
 ```yaml
 services:
   myproject:
-    <<: *denv-cc-remote
+    extends:
+      file: compose.base.yaml
+      service: denv-cc-remote
     container_name: denv-cc-myproject
     working_dir: /workspaces/myproject
     command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 
   another:
-    <<: *denv-cc-remote
+    extends:
+      file: compose.base.yaml
+      service: denv-cc-remote
     container_name: denv-cc-another
     working_dir: /workspaces/another
     command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
+
+# extends では top-level の volumes は引き継がれないため、ここで宣言する
+volumes:
+  claude-versions:
+  serena-data:
 ```
+
+`extends` の相対パスは**読み込む側（`docker-compose.yaml`）の位置**を基準に解決される。
+両方が同じディレクトリにあるため、`compose.base.yaml` とだけ書けばよい。
 
 ```bash
 docker compose up -d
