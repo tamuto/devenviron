@@ -112,34 +112,42 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
 
 ## 2. リリース運用（タグ不変性の担保）
 
-- [ ] **2.1 `deploy.sh` から `latest` の push を削除する**
-  - 現状 `deploy.sh` は無条件に `:latest` も push するが、`latest` を付けているのは
-    `build_py3_*.sh` のみ。aarch64 / L4T 系のビルド直後に実行すると、
-    無関係な latest を push する、あるいは arm64 イメージが x86 用 latest を上書きする事故が起きる。
-  - 「タグは不変」という方針とも `latest` は本質的に相容れないため、公開タグから外す。
+- [x] **2.1 `latest` タグの廃止**
+  - `deploy.sh` の `docker push ...:latest` を削除。
+  - `scripts/build_py3_12.sh` / `build_py3_13.sh` の `docker tag ...:latest` を削除。
+  - `latest` を指定して `deploy.sh` を実行した場合もエラーで停止するようにした。
 
-- [ ] **2.2 `deploy.sh` に `set -eu` と引数チェックを追加する**
-  - 現状は引数なしで実行すると `devenviron:` を push しようとする。
+- [x] **2.2 `deploy.sh` に `set -eu` と引数チェックを追加**
+  - あわせて、push 前にローカルへイメージが存在するかも確認する。
 
-- [ ] **2.3 push 前に「タグが既に存在しないか」を確認する**
+- [x] **2.3 push 前に既存タグを検出して停止する**
+  - `docker manifest inspect` でレジストリ側に同名タグがあるかを確認し、存在すれば拒否する。
   - タグ不変ポリシーを運用ではなく仕組みで守る。
-    ```sh
-    if docker manifest inspect docker.io/tamuto/devenviron:$1 >/dev/null 2>&1; then
-      echo "tag $1 already exists. use a new tag." >&2; exit 1
-    fi
-    ```
-  - `--force` 相当のオプションを付ける場合も、明示的な指定がない限り止まるようにする。
+  - やむを得ない場合のみ `./deploy.sh --force <tag>` で上書きできる。
+  - あわせて `manifests/devenviron-<tag>.txt` の存在も push の必須条件とした。
+    記録のないイメージが配布されることを防ぐ。
 
-- [ ] **2.4 バージョンの単一情報源を作る**
-  - `template/Dockerfile` は `0.41.0`、`CLAUDE.md:56` は `0.38.0` と乖離している。
-  - ドキュメント側からは具体的なバージョン番号を消し、`template/Dockerfile` を参照する記述に統一する。
-  - リリース時に git tag（`v0.41.0`）とイメージタグ（`0.41.0`）を一致させる。
-    現在の git tag（`v0.22.0` / `v0.13.3`）はイメージタグと無関係な状態になっている。
+- [x] **2.4 バージョンの単一情報源を確定**
+  - `template/Dockerfile` を配布バージョンの単一情報源とする。
+    他のドキュメントにはバージョン番号を書かない（`grep` で他に存在しないことを確認済み）。
+  - `docs/rebuild.md` に「タグの運用ルール」と「リリース手順」を追加。
+    ビルド → マニフェストのコミット → push → `template/Dockerfile` 更新 → git tag、
+    の流れを明文化し、イメージタグと git タグを一致させる運用にした。
 
-- [ ] **2.5 `etc/runtimes/build.sh` の `latest` タグ付けを見直す**
-  - ランタイムイメージも同様に `latest` を自動付与している。
-  - 特に `claudecode` は `@anthropic-ai/claude-code` をバージョン無指定で導入するため、
-    `latest` が指す中身がビルド時期で大きく変わる。2.1 と同じ整理を行う。
+- [x] **2.5 `etc/runtimes/build.sh` の `latest` タグ付けを廃止**
+  - ランタイムイメージも同様に `latest` を付与しないようにした。
+  - あわせて引数チェックと Dockerfile の存在確認を追加。
+
+### 実装メモ（2章 完了分）
+
+- `deploy.sh` は以下をすべて満たさない限り push しない。
+  1. 引数が指定されていること / `latest` でないこと
+  2. 対象イメージがローカルに存在すること
+  3. `manifests/devenviron-<tag>.txt` が存在すること
+  4. レジストリに同名タグが存在しないこと（`--force` で回避可）
+- 検証は docker スタブを用いて全分岐を確認済み。実レジストリへの push は未実行。
+- ランタイムイメージ（`etc/runtimes/`）にはまだマニフェスト記録の仕組みがない。
+  配布物として扱うなら 1 章と同等の仕組みを入れる必要がある（→ 別途検討）。
 
 ---
 
