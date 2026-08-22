@@ -15,11 +15,19 @@
 # 複数動かしたい場合は、必ずサービスを増やすこと。
 
 services:
-  # 実際のプロジェクトに合わせて、サービス名・container_name・hostname・
-  # working_dir・--name を書き換えて使う。
+  # 実際のプロジェクトに合わせて、サービス名・hostname・working_dir を
+  # 書き換えて使う。
   #
   # hostname はモバイルや claude.ai に表示されるデバイス名になる。
   # 指定しないとコンテナ ID が表示されて判別できない。
+  #
+  # compose にはサービス名を参照する変数がないため自動では引けないが、
+  # YAML のアンカー(&name / *name)で 1 箇所にまとめられる。
+  # working_dir だけは文字列の連結ができないため個別に書く。
+  #
+  # container_name は指定しない。省略すると compose が
+  # <compose プロジェクト名>-<サービス名>-1 を自動で付ける。
+  # docker compose exec / run はサービス名で指定するため支障はない。
   #
   # 初回のログイン・ワークスペース信頼の承認・MCP 登録もこのサービスで行う。
   #   docker compose run --rm myproject claude
@@ -27,10 +35,9 @@ services:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-myproject
-    hostname: denv-myproject
+    hostname: &myproject myproject
     working_dir: /workspaces/myproject
-    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+    command: ["claude", "remote-control", "--name", *myproject, "--spawn", "session"]
 
   # --- 2 つ目以降はサービスを増やす ---
   #
@@ -45,10 +52,9 @@ services:
   #   extends:
   #     file: compose.base.yaml
   #     service: denv-cc-remote
-  #   container_name: denv-cc-another
-  #   hostname: denv-another
+  #   hostname: &another another
   #   working_dir: /workspaces/another
-  #   command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
+  #   command: ["claude", "remote-control", "--name", *another, "--spawn", "session"]
 
   # 1 つのプロジェクト内で並行作業したい場合は --spawn worktree にする。
   # スマホから作った各セッションを Claude Code が自動で
@@ -60,10 +66,9 @@ services:
   #   extends:
   #     file: compose.base.yaml
   #     service: denv-cc-remote
-  #   container_name: denv-cc-parallel
-  #   hostname: denv-parallel
+  #   hostname: &parallel parallel
   #   working_dir: /workspaces/parallel
-  #   command: ["claude", "remote-control", "--name", "parallel", "--spawn", "worktree"]
+  #   command: ["claude", "remote-control", "--name", *parallel, "--spawn", "worktree"]
 
 # extends では top-level の volumes は引き継がれないため、ここで宣言する。
 volumes:

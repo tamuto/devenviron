@@ -67,10 +67,9 @@ cp docker-compose.yaml.sample docker-compose.yaml
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-myproject
-    hostname: denv-myproject
+    hostname: &myproject myproject
     working_dir: /workspaces/myproject
-    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+    command: ["claude", "remote-control", "--name", *myproject, "--spawn", "session"]
 ```
 
 `hostname` は**モバイルや claude.ai に表示されるデバイス名**になる。
@@ -78,6 +77,20 @@ cp docker-compose.yaml.sample docker-compose.yaml
 16進の羅列が表示されて判別できない。
 `compose.base.yaml` に既定値 `denv` を入れてあるが、
 サービスごとに上書きするとプロジェクト単位で見分けられる。
+
+**compose にはサービス名を参照する変数がない**ため自動では引けない。
+`${...}` の展開は環境変数と `.env` しか読まず、
+サービス名を指す変数は用意されていない。
+（compose はサービス名をコンテナ間 DNS の**ネットワークエイリアス**としては設定するが、
+これは `/etc/hostname` とは別物で、Claude Code が読むのは後者である。）
+
+代わりに YAML のアンカー（`&myproject` / `*myproject`）で 1 箇所にまとめられる。
+`working_dir` だけは文字列の連結ができないため個別に書く必要がある。
+
+`container_name` は指定していない。省略すると compose が
+`<compose プロジェクト名>-<サービス名>-1` を自動で付ける。
+`docker compose exec` / `run` はサービス名で指定するため支障はない。
+固定したい場合は `container_name:` を足せばよい。
 
 ファイルは以下のように分かれている。
 
@@ -381,19 +394,17 @@ services:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-myproject
-    hostname: denv-myproject
+    hostname: &myproject myproject
     working_dir: /workspaces/myproject
-    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+    command: ["claude", "remote-control", "--name", *myproject, "--spawn", "session"]
 
   another:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    container_name: denv-cc-another
-    hostname: denv-another
+    hostname: &another another
     working_dir: /workspaces/another
-    command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
+    command: ["claude", "remote-control", "--name", *another, "--spawn", "session"]
 
 # extends では top-level の volumes は引き継がれないため、ここで宣言する
 volumes:

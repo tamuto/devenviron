@@ -292,6 +292,11 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
       Docker は既定でコンテナ ID を hostname にするため、
       指定しないと16進の羅列が表示されて判別できない。
       compose の `hostname:` で指定する（`compose.base.yaml` に既定値 `denv`）。
+      compose にはサービス名を参照する変数がないため自動では引けない
+      （`${...}` は環境変数と `.env` しか読まない）。
+      サービス名はコンテナ間 DNS のネットワークエイリアスにはなるが、
+      `/etc/hostname` とは別物である。
+      YAML のアンカーで名前を1箇所にまとめる形を雛形に採用した。
       セッション名（`--name`）とは別物である点に注意。
       `--remote-control-session-name-prefix` はセッション名にしか効かない。
     - マウントは全サービス共通でツリー全体（`${WORKSPACES_ROOT}` → `/workspaces`）。
