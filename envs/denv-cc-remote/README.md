@@ -334,6 +334,34 @@ docker compose exec myproject sh -c 'ls -la /root/.claude.json; wc -c /root/.cla
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`
 - `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けている
 
+### 2つ目以降のサービスでセッションが開始しない
+
+**ワークスペース信頼が未承認である可能性が高い。**
+信頼はディレクトリ単位で管理され、親ディレクトリの承認も、
+同じリポジトリの別 worktree の承認も引き継がれない。
+たとえば `/workspaces/foo` を承認済みでも、
+その worktree である `/workspaces/foo.feature-xxx` は別途承認が必要になる。
+
+承認済みかどうかは `.claude.json` で確認できる。
+
+```bash
+python3 -c "
+import json
+d = json.load(open('$WORKSPACES_ROOT/.devcontainer/denv/.claude.json'))
+for path, v in d.get('projects', {}).items():
+    print(v.get('hasTrustDialogAccepted'), path)
+"
+```
+
+対象のディレクトリが一覧に無い、または `False` であれば未承認である。
+そのサービスを指定して一度だけ対話で起動し、承認する。
+
+```bash
+docker compose run --rm <サービス名> claude
+#   → ワークスペースの信頼を承認 → /exit
+docker compose up -d
+```
+
 ### MCP サーバが認識されない
 
 まず登録されているかを確認する。
@@ -422,6 +450,16 @@ docker compose up -d
 
 これで claude.ai のセッション一覧に `myproject` と `another` が並び、
 それぞれからセッションを開始できる。
+
+**プロジェクトを追加したら、そのディレクトリの信頼承認を必ず行うこと。**
+ワークスペース信頼はディレクトリ単位で、親ディレクトリや
+同じリポジトリの別 worktree の承認は引き継がれない。
+未承認のままだとセッションが開始しない。
+
+```bash
+docker compose run --rm another claude
+#   → ワークスペースの信頼を承認 → /exit
+```
 
 `--spawn session` は「1 コンテナ = 1 プロジェクト = 1 セッション」で、
 従来の CLI と同じ感覚で扱える。まずはこの形を勧める。
