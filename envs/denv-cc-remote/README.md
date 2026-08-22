@@ -71,7 +71,7 @@ remote-control のサーバモードは、ログイン済みでないと起動�
 いずれも対話操作が必要なため、初回のみ通常のセッションを起動して済ませる。
 
 ```bash
-docker compose run --rm denv-cc-remote claude
+PROJECT=myproject docker compose run --rm denv-cc-remote claude
 ```
 
 起動したら以下を行う。
@@ -79,6 +79,10 @@ docker compose run --rm denv-cc-remote claude
 1. ワークスペースの信頼を確認するダイアログを承認する
 2. `/login` を実行し、ブラウザでサインインする
 3. `/exit` で終了する
+
+**ログインはアカウント単位で一度だけでよい**が、
+**ワークスペースの信頼はディレクトリごとに承認が必要**である。
+プロジェクトを増やしたら、そのプロジェクトを指定して同じ手順を一度実施すること。
 
 認証情報と組織情報はホスト側の `.devcontainer/denv/.claude` および
 `.devcontainer/denv/.claude.json` に保存されるため、次回以降このやり取りは不要になる。
@@ -91,6 +95,11 @@ MCP の登録内容はイメージには含めていない。
 
 登録内容はホスト側の `.claude.json` に保存されるため、
 一度登録すればコンテナを作り直しても残る。
+
+**`--scope user` で登録すれば全プロジェクトで有効になる。**
+`.claude.json` はすべてのサービスが同じファイルを bind mount しているため、
+どのプロジェクトのコンテナからでも同じ MCP が使える。
+プロジェクトごとに登録し直す必要はない。
 
 同梱している Serena を登録する場合は以下。
 
@@ -296,8 +305,10 @@ so start Remote Control from a project directory.」とあり、
 
 ### プロジェクトごとにサービスを定義する
 
-claude.ai のセッション一覧にプロジェクトを並べたい場合は、
-プロジェクトごとにサーバを立てる。
+**サービス 1 つにつきコンテナが 1 つ起動する。**
+3 つ定義すれば `claude remote-control` が 3 プロセス並行で動くため、
+常用するものだけ定義するとよい。
+
 `docker-compose.yaml` に YAML アンカーを用意してあるので、
 共通設定を書き写す必要はない。
 
@@ -307,13 +318,13 @@ services:
     <<: *denv-cc-remote
     container_name: denv-cc-myproject
     working_dir: /workspaces/myproject
-    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "worktree"]
+    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 
   another:
     <<: *denv-cc-remote
     container_name: denv-cc-another
     working_dir: /workspaces/another
-    command: ["claude", "remote-control", "--name", "another"]
+    command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
 ```
 
 ```bash
@@ -323,18 +334,30 @@ docker compose up -d
 これで claude.ai のセッション一覧に `myproject` と `another` が並び、
 それぞれからセッションを開始できる。
 
-### 1プロジェクト内で複数セッションを使う
+`--spawn session` は「1 コンテナ = 1 プロジェクト = 1 セッション」で、
+従来の CLI と同じ感覚で扱える。まずはこの形を勧める。
 
-対象が git リポジトリであれば `--spawn worktree` を付けるとよい。
-スマホから作った各セッションが個別の
-[git worktree](https://code.claude.com/docs/en/worktrees) を持つため、
-同じファイルを取り合わなくなる。
+### 1プロジェクト内で並行作業する
 
-既定の `same-dir` でも複数セッションは作れるが、
-すべて同じ作業ディレクトリを共有するため、
+サーバモードは 1 プロセスで複数セッションを扱える（既定の上限は32、`--capacity`）。
+ただし既定の `--spawn same-dir` では**全セッションが同じディレクトリを共有する**ため、
 同じファイルを編集すると競合する。
 
-同時セッション数の上限は `--capacity <N>`（既定32）で変えられる。
+`--spawn worktree` にすると、各セッションを Claude Code が自動で
+[git worktree](https://code.claude.com/docs/en/worktrees) へ切り出す。
+**フォルダを事前に分けておく必要はない。**
+worktree はリポジトリルートの `.claude/worktrees/<name>/` に、
+`worktree-<name>` ブランチで作られる。
+
+導入前に知っておくべき点。
+
+- worktree は fresh checkout のため `node_modules` や `.venv` は無く、
+  セッションごとに入れ直しが必要になる
+- `.env` のような gitignore されたファイルも来ない。
+  リポジトリルートに `.worktreeinclude` を置くと自動コピーできる
+- `.claude/worktrees/` は `.gitignore` に入れておくこと
+
+段差があるため、並行作業が必要になってから切り替えれば十分である。
 
 ## サーバモードの主なオプション
 
