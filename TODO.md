@@ -288,6 +288,12 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
       `extends` では top-level の `volumes:` が引き継がれないため、
       各自のファイル側で宣言する必要がある（雛形に含めてある）。
       相対パスは読み込む側のファイル位置が基準になるが、同一ディレクトリのため影響はない。
+    - **モバイルに出るデバイス名はコンテナの hostname である。**
+      Docker は既定でコンテナ ID を hostname にするため、
+      指定しないと16進の羅列が表示されて判別できない。
+      compose の `hostname:` で指定する（`compose.base.yaml` に既定値 `denv`）。
+      セッション名（`--name`）とは別物である点に注意。
+      `--remote-control-session-name-prefix` はセッション名にしか効かない。
     - マウントは全サービス共通でツリー全体（`${WORKSPACES_ROOT}` → `/workspaces`）。
       `working_dir` は開始位置の指定であって可視範囲を絞るものではないため、
       フォルダの担当分けは運用で決める必要がある。

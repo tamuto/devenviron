@@ -68,9 +68,16 @@ cp docker-compose.yaml.sample docker-compose.yaml
       file: compose.base.yaml
       service: denv-cc-remote
     container_name: denv-cc-myproject
+    hostname: denv-myproject
     working_dir: /workspaces/myproject
     command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 ```
+
+`hostname` は**モバイルや claude.ai に表示されるデバイス名**になる。
+指定しないと Docker が既定でコンテナ ID を hostname にするため、
+16進の羅列が表示されて判別できない。
+`compose.base.yaml` に既定値 `denv` を入れてあるが、
+サービスごとに上書きするとプロジェクト単位で見分けられる。
 
 ファイルは以下のように分かれている。
 
@@ -244,6 +251,24 @@ docker compose exec myproject claude mcp list
 docker compose exec myproject claude mcp get serena
 ```
 
+### モバイルでの表示名
+
+表示名には2種類ある。混同しやすいので整理しておく。
+
+| 表示 | 決まり方 | 指定方法 |
+| --- | --- | --- |
+| デバイス名 | コンテナの hostname | compose の `hostname:` |
+| セッション名 | `--name` の値。未指定なら `<hostname>-graceful-unicorn` のような自動生成 | `--name` |
+
+`--name` を指定していれば、セッション名にホスト名は使われない。
+それでもデバイス名は hostname のままなので、
+`hostname:` を指定しないとコンテナ ID が表示される。
+
+自動生成名の接頭辞だけを変えたい場合は
+`--remote-control-session-name-prefix`（環境変数
+`CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX`）を使う。
+ただしこれはセッション名にしか効かず、デバイス名は変わらない。
+
 ### バージョンについて
 
 **このイメージ自身はバージョン番号を持たない。**
@@ -357,6 +382,7 @@ services:
       file: compose.base.yaml
       service: denv-cc-remote
     container_name: denv-cc-myproject
+    hostname: denv-myproject
     working_dir: /workspaces/myproject
     command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 
@@ -365,6 +391,7 @@ services:
       file: compose.base.yaml
       service: denv-cc-remote
     container_name: denv-cc-another
+    hostname: denv-another
     working_dir: /workspaces/another
     command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
 
