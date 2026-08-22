@@ -1,5 +1,11 @@
 FROM {{BASEIMG}}
 
+# ビルド情報。イメージの素性を後から追跡するために利用する。
+ARG DENV_VERSION=unknown
+ARG DENV_REVISION=unknown
+ARG DENV_CREATED=unknown
+ENV DENV_BASEIMG="{{BASEIMG}}"
+
 RUN apt-get update && apt-get install -y \
     curl build-essential git git-lfs sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
@@ -36,6 +42,24 @@ RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM
 COPY resources/bash_aliases /root/.bashrc
 COPY resources/ssh-aws.sh /usr/local/bin/ssh-aws.sh
 COPY resources/ssh-fw-aws.sh /usr/local/bin/ssh-fw-aws.sh
+COPY resources/devenviron-manifest /usr/local/bin/devenviron-manifest
+
+# voltaで導入したnode/pnpmを非対話シェルからも参照できるようにする。
+# (従来は.bashrcでのみPATHを通していたため`docker run <image> node -v`が失敗していた)
+ENV VOLTA_HOME="/root/.volta"
+ENV PATH="/root/.volta/bin:${PATH}"
+
+# ビルド時点の構成を記録する。必ず全ての導入処理の後に実行すること。
+RUN chmod +x /usr/local/bin/devenviron-manifest \
+&&  mkdir -p /etc/devenviron \
+&&  devenviron-manifest > /etc/devenviron/manifest.txt
+
+LABEL org.opencontainers.image.title="devenviron" \
+      org.opencontainers.image.source="https://github.com/tamuto/devenviron" \
+      org.opencontainers.image.version="${DENV_VERSION}" \
+      org.opencontainers.image.revision="${DENV_REVISION}" \
+      org.opencontainers.image.created="${DENV_CREATED}" \
+      org.opencontainers.image.base.name="{{BASEIMG}}"
 
 ENTRYPOINT [""]
 CMD ["/bin/bash"]

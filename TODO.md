@@ -39,7 +39,7 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
 「前のタグから何が上がったのか」を後から確認できることが、統一基盤としての生命線になる。
 固定の代わりに**記録**で担保する。
 
-- [ ] **1.1 イメージ内にビルドマニフェストを埋め込む**
+- [x] **1.1 イメージ内にビルドマニフェストを埋め込む**
   - `template/container/resources/devenviron-manifest`（新規）を作成し、
     Dockerfile の最終層で実行して `/etc/devenviron/manifest.txt` に出力する。
   - 収集内容の例:
@@ -51,7 +51,7 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
     - `terraform version` / `aws --version` / `session-manager-plugin --version` / `uv --version`
   - コンテナ内から `cat /etc/devenviron/manifest.txt` で即座に構成を確認できる状態にする。
 
-- [ ] **1.2 マニフェストをリポジトリにコミットして差分を追えるようにする**
+- [x] **1.2 マニフェストをリポジトリにコミットして差分を追えるようにする**
   - ビルドスクリプトの最後で以下を実行:
     ```sh
     docker run --rm docker.io/tamuto/devenviron:$1 cat /etc/devenviron/manifest.txt \
@@ -61,7 +61,7 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
     で **タグ間で何のバージョンが変わったのかが完全に見える**。
   - CHANGELOG を手書きしなくても、実質的な変更履歴がこれで残る。
 
-- [ ] **1.3 OCI 標準ラベルを付与する**
+- [x] **1.3 OCI 標準ラベルを付与する**
   - `Dockerfile.tmpl` に以下を追加し、稼働中のコンテナからイメージの素性を逆引きできるようにする。
     ```dockerfile
     ARG DENV_VERSION
@@ -75,11 +75,38 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
     ```
   - `docker inspect` だけで「どのコミットの定義から、どのベースで焼かれたか」が判る。
 
-- [ ] **1.4 （発展）SBOM の生成とレジストリへの添付**
-  - `syft` で SPDX / CycloneDX 形式の SBOM を生成し、`oras attach` でイメージに添付する。
-  - `etc/runtimes/nodeoras` に既に `oras` / `crane` を用意しているため、そのまま流用できる。
-  - 脆弱性が公表された際に「どのタグが影響を受けるか」を機械的に判定できるようになる。
-  - 優先度は 1.1〜1.3 の後でよい。
+### 実装メモ（1.1〜1.3 完了分）
+
+- `template/container/resources/devenviron-manifest` … マニフェスト生成本体。
+  存在しないコマンドは `(not installed)` として記録するため、ベースイメージが変わっても落ちない。
+- `template/container/Dockerfile.tmpl` … `ARG DENV_VERSION/REVISION/CREATED` を追加し、
+  全導入処理の後で `/etc/devenviron/manifest.txt` を生成、OCI ラベルを付与。
+- `scripts/manifest.sh <tag>` … ビルド済みイメージから `manifests/devenviron-<tag>.txt` を取り出す。
+- `scripts/build_*.sh` … ビルド情報を `--build-arg` で渡し、ビルド後に `manifest.sh` を自動実行。
+- あわせて `ENV VOLTA_HOME` / `ENV PATH` を追加した。
+  従来は `.bashrc` でのみ PATH を通していたため、`docker run <image> node -v` のような
+  非対話実行では node / pnpm が見つからない状態だった（マニフェスト収集にも必要だった）。
+
+- [ ] **1.4 （発展・保留）SBOM の生成とレジストリへの添付**
+
+  1.1〜1.3 で作ったマニフェストは「人間が読む / git diff で比較する」ためのテキストである。
+  1.4 はそれを**機械可読な標準フォーマット**にし、**イメージ本体に紐付けてレジストリ側に置く**もの。
+
+  - **SBOM とは**: Software Bill of Materials（ソフトウェア部品表）。
+    イメージに含まれる全パッケージとバージョンを、SPDX / CycloneDX という標準フォーマットの
+    JSON で列挙したもの。中身の情報としてはマニフェストとほぼ同じ。
+  - **標準フォーマットにする利点**: 脆弱性スキャナ（`grype` / `trivy` 等）がそのまま読める。
+    「CVE-XXXX が公表されたが、どのタグのイメージが影響を受けるか」を
+    テキスト検索ではなくツールで機械的に判定できる。
+  - **`oras attach` とは**: SBOM ファイルを、イメージと同じレジストリに
+    「そのイメージへの添付物」として関連付けて push する仕組み（OCI Referrers）。
+    イメージを再ビルドせずに後付けでき、`oras discover <image>` で辿れる。
+    `manifests/` のような git 側の記録と違い、**レジストリからイメージを取得した相手が
+    そのまま SBOM も取得できる**点が異なる。
+  - **本プロジェクトでの位置づけ**: `etc/runtimes/nodeoras` に既に `oras` / `crane` があるため
+    実装の下地はある。ただしメンバー配布が主用途で外部への配布はしていないため、
+    現時点では 1.1〜1.3 のテキスト記録で足りている。
+    脆弱性対応を運用に組み込む段階になったら着手する。
 
 ---
 
