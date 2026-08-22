@@ -57,7 +57,7 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
     docker run --rm docker.io/tamuto/devenviron:$1 cat /etc/devenviron/manifest.txt \
       > manifests/devenviron-$1.txt
     ```
-  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-0.41.0.txt manifests/devenviron-0.42.0.txt`
+  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-2026.08.0.txt manifests/devenviron-2026.09.0.txt`
     で **タグ間で何のバージョンが変わったのかが完全に見える**。
   - CHANGELOG を手書きしなくても、実質的な変更履歴がこれで残る。
 
@@ -167,16 +167,19 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
   - 決定内容は `CLAUDE.md` にも記載済み（系統の取り違え防止のため）。
 
 - [x] **3.2 バージョン体系の分離（決定）**
-  - 新系統は **CalVer `YYYY.MM.<patch>`**（例: `2026.08.0`）を採用する。
+  - **CalVer `YYYY.MM.<patch>`**（例: `2026.08.0`）を採用する。
     同一月内の再ビルドは `<patch>` で区別する。
+  - **【変更】当初は新系統のみ CalVer とし既存は SemVer 維持としたが、
+    ベースイメージ `tamuto/devenviron` も CalVer へ移行することにした。**
+    ベースと派生でバージョン体系が異なると、対応関係が読み取りにくいため。
+    移行後の初版は `2026.08.0`。
   - 採用理由:
     - 「常に最新を導入する」方針では、イメージの中身は**いつ焼いたか**でほぼ決まる。
       SemVer の `0.42.0` は中身について何も語らないが、`2026.08.0` は
       「2026年8月時点の最新構成」という情報そのものになり、方針と意味が一致する。
-    - `0.41.0` と `2026.08.0` は**一目で系統が違うと判る**ため、
-      2系統併走中の取り違えが起きない。
     - 1.2 のマニフェストと組み合わせると「いつの版か」＋「何が入っていたか」が揃う。
-  - 既存 `tamuto/devenviron` は SemVer のまま維持する（体系を後から変えない）。
+  - `0.41.0` 以前は SemVer で発行済み。日付形式が明らかに異なるため新旧の区別は付く。
+    過去のタグを振り直すことはしない（タグ不変ポリシーのため）。
 
 - [x] **3.3 起動インターフェースの設計（devcontainer 非依存）**
   - `envs/denv-cc-remote/` に `Dockerfile` と `docker-compose.yaml` を作成した。
@@ -241,7 +244,7 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
 - [ ] **4.3 セットアップ内容をバージョンに追随させる**
   - 現在 `setup.sh` は GitHub API のデフォルトブランチ先端を取得するため、
     リポジトリを更新した瞬間に、既存メンバーの再セットアップ結果が変わる。
-  - `?ref=v0.41.0` のように取得元を明示できるようにし、
+  - `?ref=v2026.08.0` のように取得元を明示できるようにし、
     `setup.sh <version>` で「そのバージョン一式」を取れるようにする。
   - タグ不変ポリシー（0.1）とセットアップ側の整合が取れる。
 
