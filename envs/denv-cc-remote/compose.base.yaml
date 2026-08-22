@@ -1,0 +1,56 @@
+# denv-cc-remote の共通設定。
+#
+# 各プロジェクトのサービスは docker-compose.yaml 側で定義し、
+# このファイルの denv-cc-remote サービスを extends して共通設定を引き継ぐ。
+#
+# このファイルは compose から直接読み込まれることはない。
+# docker-compose.yaml の extends から参照されるだけである。
+#
+# remote-control は claude.ai への外向き通信のみで成立するため、
+# ポート公開は不要。
+
+services:
+  denv-cc-remote:
+    # レジストリへは公開しない。各利用者の手元でビルドして使う。
+    # バージョン番号を持つのはベースイメージ (Dockerfile の FROM) だけであり、
+    # 「どの devenviron の上に構築されたか」で環境が一意に定まる。
+    # local タグはローカルビルドであることを示すための固定値。
+    image: denv-cc-remote:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    volumes:
+      # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
+      # 全サービスがツリー全体を同じようにマウントする。
+      # working_dir はそのコンテナのセッションが始まる位置を選ぶだけであり、
+      # マウント範囲を絞るものではない。
+      - ${WORKSPACES_ROOT:-/root/workspaces}:/workspaces
+      # Claude Code の認証情報・設定・セッション履歴。
+      # .claude.json には組織情報(oauthAccount)と機能フラグのキャッシュが入っており、
+      # これが失われると remote-control が
+      # "Unable to determine your organization" で起動できなくなる。
+      # 単一ファイルは名前付きボリュームで扱えないため、
+      # .gitconfig などと同じく bind mount とする。
+      # 事前にホスト側へ実体を作っておくこと(README の準備手順を参照)。
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude:/root/.claude
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude.json:/root/.claude.json
+      # 自動更新で取得したバイナリの実体。
+      # 永続化しておくと起動のたびに更新をやり直さずに済む。
+      - claude-versions:/root/.local/share/claude
+      # Serena の設定とプロジェクトのインデックス、および取得済みの language server。
+      # 永続化しないとコンテナを作り直すたびに再取得・再インデックスになる。
+      - serena-data:/root/.serena
+      # 開発で利用する認証情報。devcontainer 側と同じものを共有する。
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.gitconfig:/root/.gitconfig
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.git-credentials:/root/.git-credentials
+    environment:
+      # remote-control は機能フラグの評価結果に依存するため、
+      # 以下を設定すると利用できなくなる。設定しないこと。
+      #   DISABLE_TELEMETRY / DO_NOT_TRACK
+      #   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC / DISABLE_GROWTHBOOK
+      # また ANTHROPIC_BASE_URL を api.anthropic.com 以外へ向けると利用できない。
+      - TZ=${TZ:-Asia/Tokyo}

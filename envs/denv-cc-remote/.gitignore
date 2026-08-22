@@ -1,0 +1,3 @@
+# 各自のプロジェクト定義。リポジトリでは管理しない。
+# 雛形は docker-compose.yaml.sample を参照。
+docker-compose.yaml

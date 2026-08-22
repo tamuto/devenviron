@@ -1,0 +1,65 @@
+# 各自のプロジェクト定義。
+#
+#   cp docker-compose.yaml.sample docker-compose.yaml
+#
+# docker-compose.yaml は .gitignore してあるため、
+# 自分の定義を書いてもコミットされない。
+# 共通設定は compose.base.yaml 側にあり、そちらはリポジトリで管理する。
+#
+# ■ サービスはプロジェクトごとに 1 つずつ「並べて」定義する
+#
+# compose はコンテナを「compose プロジェクト名 + サービス名」で識別する。
+# そのため 1 つのサービスの working_dir を環境変数で切り替えても、
+# 2 回目の up は同じサービスとみなされて既存コンテナが作り直される。
+# つまり 1 つ目が落ちて 2 つ目に置き換わるだけで、複数は起動しない。
+# 複数動かしたい場合は、必ずサービスを増やすこと。
+
+services:
+  # 実際のプロジェクトに合わせて、サービス名・container_name・
+  # working_dir・--name を書き換えて使う。
+  #
+  # 初回のログイン・ワークスペース信頼の承認・MCP 登録もこのサービスで行う。
+  #   docker compose run --rm myproject claude
+  myproject:
+    extends:
+      file: compose.base.yaml
+      service: denv-cc-remote
+    container_name: denv-cc-myproject
+    working_dir: /workspaces/myproject
+    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+
+  # --- 2 つ目以降はサービスを増やす ---
+  #
+  # サービス 1 つにつきコンテナが 1 つ起動する。
+  # 3 つ定義すれば claude remote-control が 3 プロセス並行で動く。
+  # それぞれがメモリを使うため、常用するものだけ定義するとよい。
+  #
+  # --spawn session は「1 コンテナ = 1 プロジェクト = 1 セッション」。
+  # 従来の CLI と同じ感覚で扱えるため、まずはこの形を勧める。
+
+  # another:
+  #   extends:
+  #     file: compose.base.yaml
+  #     service: denv-cc-remote
+  #   container_name: denv-cc-another
+  #   working_dir: /workspaces/another
+  #   command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
+
+  # 1 つのプロジェクト内で並行作業したい場合は --spawn worktree にする。
+  # スマホから作った各セッションを Claude Code が自動で
+  # .claude/worktrees/<name>/ へ切り出すため、フォルダを事前に分ける必要はない。
+  # ただし worktree は fresh checkout なので node_modules や .venv は無く、
+  # .env などの gitignore されたファイルも .worktreeinclude を置かないと来ない。
+
+  # parallel:
+  #   extends:
+  #     file: compose.base.yaml
+  #     service: denv-cc-remote
+  #   container_name: denv-cc-parallel
+  #   working_dir: /workspaces/parallel
+  #   command: ["claude", "remote-control", "--name", "parallel", "--spawn", "worktree"]
+
+# extends では top-level の volumes は引き継がれないため、ここで宣言する。
+volumes:
+  claude-versions:
+  serena-data:

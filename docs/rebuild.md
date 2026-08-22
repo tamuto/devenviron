@@ -19,12 +19,17 @@ x86系だけをCI化するとビルド経路が二系統に分かれて管理が
 
 現在2系統を併走させている。バージョン体系が異なるため取り違えないこと。
 
-| イメージ名 | 位置づけ | 用途 |
-| --- | --- | --- |
-| `tamuto/devenviron` | ベースイメージ | 開発環境の土台。`envs/`配下の各環境はこれを継承する |
-| `tamuto/denv-cc-remote` | 派生イメージ | Claude Codeをremote-controlで動かす環境 |
+**レジストリへ公開するイメージは`tamuto/devenviron`だけである。**
 
-**バージョン体系は両方ともCalVer `YYYY.MM.<patch>`（例 `2026.08.0`）である。**
+`envs/`配下の各環境（devcontainer / denv-cc-remote）は、
+このベースイメージを継承して各利用者の手元でビルドする。公開はしない。
+
+この結果、**バージョン番号を持つのはベースイメージだけ**になる。
+派生イメージ側にも番号を振ると、
+どちらがどの環境を指すのか読み取れなくなるため持たせていない。
+「どのdevenvironの上に構築されたか」で環境が一意に定まる。
+
+**バージョン体系はCalVer `YYYY.MM.<patch>`（例 `2026.08.1`）である。**
 `<patch>`は同一月内に再ビルドした場合の区別に使う。
 
 CalVerを採るのは、「常に最新を導入する」方針では
@@ -33,7 +38,7 @@ SemVerの`0.42.0`は中身について何も語らないが、
 `2026.08.0`という番号自体が「2026年8月時点の最新構成」を表すことになり、方針と意味が一致する。
 
 `0.41.0`以前のdevenvironはSemVerで発行されている。
-`2026.08.0`以降がCalVerとなるが、日付形式が明らかに異なるため新旧の区別は付く。
+`2026.08.1`以降がCalVerとなるが、日付形式が明らかに異なるため新旧の区別は付く。
 過去のタグを振り直すことはしない（タグ不変ポリシーのため）。
 
 **本ドキュメントのビルド・リリース手順は既存系統（`tamuto/devenviron`）を対象とする。**
@@ -135,7 +140,7 @@ DevEnvironは「常に最新を導入する」方針のため、ソフトウェ�
 cat /etc/devenviron/manifest.txt
 
 # タグ間の差分（何のバージョンが上がったか）
-git diff --no-index manifests/devenviron-2026.08.0.txt manifests/devenviron-2026.09.0.txt
+git diff --no-index manifests/devenviron-2026.08.1.txt manifests/devenviron-2026.09.0.txt
 
 # イメージのラベル（バージョン・コミット・ベースイメージ・ビルド日時）
 docker inspect --format '{{json .Config.Labels}}' docker.io/tamuto/devenviron:<image-tag>

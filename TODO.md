@@ -57,7 +57,7 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
     docker run --rm docker.io/tamuto/devenviron:$1 cat /etc/devenviron/manifest.txt \
       > manifests/devenviron-$1.txt
     ```
-  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-2026.08.0.txt manifests/devenviron-2026.09.0.txt`
+  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-2026.08.1.txt manifests/devenviron-2026.09.0.txt`
     で **タグ間で何のバージョンが変わったのかが完全に見える**。
   - CHANGELOG を手書きしなくても、実質的な変更履歴がこれで残る。
 
@@ -156,23 +156,33 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
 Claude Code を remote-control で起動する環境を新たに提供し、今後の主軸をこちらに移す。
 既存の devenviron（VSCode devcontainer 前提）とは**イメージ名・バージョン体系・セットアップ手順を分離**する。
 
-- [x] **3.1 イメージ名の分離（決定）**
-
-  | 系統 | イメージ名 | 用途 |
-  | --- | --- | --- |
-  | 既存 | `tamuto/devenviron` | VSCode devcontainer 前提の開発環境。現行系統として維持 |
-  | 新規 | `tamuto/denv-cc-remote` | Claude Code を remote-control で動かす環境 |
-
-  - 名前を分けることで、既存メンバーの環境に一切影響を与えずに新系統を並走できる。
-  - 決定内容は `CLAUDE.md` にも記載済み（系統の取り違え防止のため）。
+- [x] **3.1 イメージ名（決定 → 後に方針変更）**
+  - 当初は `tamuto/denv-cc-remote` として公開する前提だったが、
+    **公開しない方針へ変更した。**
+  - 理由:
+    - ベース（`tamuto/devenviron:2026.08.1`）と派生（`denv-cc-remote:2026.08.0`）が
+      同じ CalVer 形式で並ぶと、対応関係がタグから読み取れず混乱する。
+    - 環境統一という目的は、すでにベースイメージ側で達成されている。
+      python / node / terraform 等の実体は `FROM` のタグ固定とタグ不変ポリシーで完全に決まる。
+      派生が積むのは Claude Code と Serena だけ。
+    - Claude Code は**どのみち自動更新される**ため、イメージに焼いても実行時には各自で分かれる。
+      publish しても統一できない。
+    - 中身が実質3つの `RUN` であり、publish という重い仕組みに見合わない。
+  - 残る論点: Serena は自動更新されないため、ビルド時期でバージョンがばらつく。
+    揃える必要が生じたら `Dockerfile` で `serena-agent==<version>` と指定すれば足りる。
+  - compose のイメージ名は `denv-cc-remote:local`。
+    ローカルビルドであることを示す固定値で、バージョンの意味は持たせない。
+  - **後戻り可能**: リモートサーバや多数のマシンで動かす必要が出た時点で publish へ切り替えられる。
 
 - [x] **3.2 バージョン体系の分離（決定）**
   - **CalVer `YYYY.MM.<patch>`**（例: `2026.08.0`）を採用する。
     同一月内の再ビルドは `<patch>` で区別する。
-  - **【変更】当初は新系統のみ CalVer とし既存は SemVer 維持としたが、
+  - **【変更1】当初は新系統のみ CalVer とし既存は SemVer 維持としたが、
     ベースイメージ `tamuto/devenviron` も CalVer へ移行することにした。**
-    ベースと派生でバージョン体系が異なると、対応関係が読み取りにくいため。
-    移行後の初版は `2026.08.0`。
+    移行後の初版は `2026.08.1`
+    （`2026.08.0` は push 前に破棄。revision が `unknown` のままだったため）。
+  - **【変更2】バージョン番号を持つのはベースイメージだけとした（3.1 参照）。**
+    派生イメージは公開せず、番号も持たない。
   - 採用理由:
     - 「常に最新を導入する」方針では、イメージの中身は**いつ焼いたか**でほぼ決まる。
       SemVer の `0.42.0` は中身について何も語らないが、`2026.08.0` は
@@ -209,9 +219,90 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     remote-control が依存する機能フラグの評価を無効化してしまう。
     `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けた場合も利用不可。
   - **複数セッション**: サーバモードの `--spawn worktree` / `--capacity` で対応可能。
+  - **`~/.claude.json` の永続化【対応済み・実害あり】**
+    - 当初これを未対応のまま残していたところ、
+      `Unable to determine your organization for Remote Control eligibility`
+      で remote-control が起動できない不具合として顕在化した。
+    - 調査結果: Claude Code は認証トークンを `~/.claude/.credentials.json` に、
+      組織情報（`oauthAccount` … `organizationUuid` / `organizationName` /
+      `organizationRole` / `organizationType`）と
+      Remote Control の可否判定に使う機能フラグのキャッシュ
+      （`cachedGrowthBookFeatures` / `cachedStatsigGates`）を `~/.claude.json` に、
+      **別々に**保存する。
+      前者だけを名前付きボリュームで永続化していたため、
+      `docker compose run --rm` でログインすると
+      トークンだけが残り組織情報が消える状態になっていた。
+    - 対応: 名前付きボリューム `claude-config` を廃止し、
+      `.claude`（ディレクトリ）と `.claude.json`（単一ファイル）を
+      ホスト側 `.devcontainer/denv/` から bind mount する方式へ変更。
+      単一ファイルの bind mount は `.gitconfig` / `.git-credentials` と同じ既存パターン。
+    - Docker は bind mount 先が存在しないとディレクトリを作ってしまうため、
+      `setup.sh` に `mkdir .claude` と `touch .claude.json` を追加した。
+      `setup.sh` を使わない場合の手順も README に記載済み。
+  - **Serena MCP の登録方法【対応済み・実害あり】**
+    - ビルド時に `claude mcp add --scope user` で焼き込む方式を採ったが、
+      MCP として認識されない不具合が出た。
+    - 原因: ユーザスコープの MCP 登録先は `~/.claude.json` であり、
+      組織情報の永続化のため同ファイルをホスト側から bind mount した結果、
+      **イメージに焼いた登録が丸ごと覆い隠されていた**。
+      登録先と永続化先が同一ファイルであるため、この2つは両立しない。
+    - 対応: **登録をイメージから外し、ログインと同じく初回のみの手作業とした。**
+      `.claude.json` をホスト側へ永続化したことで、
+      一度登録すればコンテナを作り直しても残るようになったため。
+      一時的に entrypoint で自動登録する案も入れたが、
+      利用者が任意の MCP を自由に入れられる方が良いため取りやめた。
+    - あわせて、空ファイル（JSON として不正）にならないよう、
+      `setup.sh` と README で `{}` を書き込む形に変更した。
+    - **注意点として明記した**: 永続化されるのは登録内容であってツール本体ではない。
+      `/root/.local` は永続化していないため、
+      コンテナ内で `uv tool install` / `npm install -g` したものは作り直すと消える。
+      `npx -y <pkg>` のように起動のたびに解決される形なら問題なく使える。
+      常設したいものは `Dockerfile` へ追加する。
+  - **複数プロジェクトの扱い【確認済み】**
+    - remote-control のサーバは **1 つにつき 1 ディレクトリ**しか扱えない。
+      `--spawn` の3モード（`same-dir` / `worktree` / `session`）のいずれも
+      サブディレクトリを列挙しない。
+      `/workspaces` のような親ディレクトリで1つ起動しても
+      プロジェクトごとのセッションにはならない。
+    - 対応: `docker-compose.yaml` に YAML アンカーを用意し、
+      プロジェクトごとにサービスを定義する形にした。
+      各サーバに `--name` を付ければ claude.ai のセッション一覧に並ぶ。
+      サービス1つにつきコンテナ1つ・プロセス1つが起動する。
+    - `/workspaces` 全体を対象とする既定サービスは廃止した。
+      公式ドキュメントが
+      「start Remote Control from a project directory」としており、
+      親ディレクトリでの起動は想定外の使い方であるため。
+    - `--spawn session`（1コンテナ = 1プロジェクト = 1セッション）を基本とする。
+      従来の CLI と同じ感覚で扱えるため。
+    - **環境変数で `working_dir` を切り替える案は破棄した。**
+      compose はコンテナを「compose プロジェクト名 + サービス名」で識別するため、
+      同じサービスへの 2 回目の `up` は既存コンテナの作り直しになる。
+      1 つ目が落ちて 2 つ目に置き換わるだけで、複数起動という目的を満たさない。
+      サービスを並べて定義する以外に方法はない。
+    - **compose ファイルを共通部と各自の定義に分割した。**
+      各自のプロジェクト定義をコミットせずにリポジトリ内で作業できるようにするため。
+      - `compose.base.yaml` … 共通設定。リポジトリで管理
+      - `docker-compose.yaml.sample` … 雛形。リポジトリで管理
+      - `docker-compose.yaml` … 各自の定義。`.gitignore` 済み
+      YAML アンカーはファイルをまたげないため `extends` を使う。
+      `extends` では top-level の `volumes:` が引き継がれないため、
+      各自のファイル側で宣言する必要がある（雛形に含めてある）。
+      相対パスは読み込む側のファイル位置が基準になるが、同一ディレクトリのため影響はない。
+    - マウントは全サービス共通でツリー全体（`${WORKSPACES_ROOT}` → `/workspaces`）。
+      `working_dir` は開始位置の指定であって可視範囲を絞るものではないため、
+      フォルダの担当分けは運用で決める必要がある。
+    - 1プロジェクト内で並行作業する場合は `--spawn worktree`。
+      Claude Code が `.claude/worktrees/<name>/` へ自動で切り出すため、
+      フォルダを事前に分ける必要はない。
+      ただし fresh checkout のため `node_modules` 等は無く、
+      `.env` も `.worktreeinclude` を置かないと引き継がれない。
+    - MCP はユーザスコープで登録すれば全プロジェクトで有効。
+      `.claude.json` を全サービスが同じファイルで bind mount しているため。
+      Serena は `--project-from-cwd` により各コンテナの作業ディレクトリを
+      自動で対象プロジェクトとして扱う。
+    - ワークスペース信頼はディレクトリごとの承認が必要な点に注意
+      （ログインはアカウント単位で一度でよい）。
   - 残っている検討事項:
-    - `~/.claude.json`（ファイル単体）の永続化。名前付きボリュームはディレクトリ単位のため
-      現状は永続化していない。失われるとワークスペース信頼の再承認が必要になる。
     - ホスト側の Docker ソケットを渡すか否か（渡す場合の権限設計）。
     - コンテナのライフサイクル（常駐か都度起動か）の運用方針。
 
