@@ -7,7 +7,7 @@
 ## ビルドの実行
 
 ```bash
-./script/build_py3_11.sh <image-tag>
+./scripts/build_py3_13.sh <image-tag>
 ```
 
 ## デプロイ

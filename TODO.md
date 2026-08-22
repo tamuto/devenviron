@@ -364,23 +364,40 @@ Claude Code を remote-control で起動する devenviron を新たに提供し�
 
 ## 9. ドキュメント / 不要物の整理
 
-- [ ] **9.1 `docs/rebuild.md` のパス誤記**
-  - `./script/build_py3_11.sh` → `./scripts/build_py3_11.sh`
+- [x] **9.1 `docs/rebuild.md` のパス誤記**
+  - `./script/build_py3_11.sh` → `./scripts/build_py3_13.sh` に修正（例示するターゲットも現行版へ変更）。
 
-- [ ] **9.2 `etc/wsl/setup.sh` と `etc/wsl/setup.bat` が両方とも空ファイル**
-  - 意図がなければ削除する。
+- [x] **9.2 `etc/wsl/setup.sh` と `etc/wsl/setup.bat` が両方とも空ファイル**
+  - 削除。最終更新は 2022-08 で、中身は 0 バイトだった。
 
-- [ ] **9.3 `etc/mac/default.yaml` が動作しない**
-  - Ubuntu **impish**（21.10、2022年7月 EOL）の cloud image を参照しており、
-    既に配布元から削除されているため取得できない。
-  - Mac 対応を維持するなら noble 等へ更新、しないなら削除して README の
-    「【後日記載】Macの場合は、Lima+Ubuntu を想定」も整理する。
+- [x] **9.3 `etc/mac/default.yaml` が動作しない**
+  - 削除。Mac は検証環境がないためサポート対象外とする方針を確定。
+  - Ubuntu impish（21.10、2022年7月 EOL）の cloud image を参照しており、配布元から削除済みで取得もできなかった。
+  - README の「【後日記載】Macの場合は、Lima+Ubuntu を想定」も
+    「Macは検証環境がないため現在サポートしていない」に変更。
 
-- [ ] **9.4 EOL に近いベースイメージの整理**
-  - `build_py3_9.sh` / `build_py3_11.sh` は bullseye（Debian 11）ベース。
-  - 「常に最新」の方針に照らすと、bookworm / trixie 系へ寄せるか、
-    使っていないターゲットは削除する。
+- [x] **9.4 EOL に近いベースイメージ / 使われていないビルドスクリプトの整理**
+  - 削除したもの:
+    - `scripts/build_py3_9.sh` … Python 3.9 は 2025-10 に EOL
+    - `scripts/build_py3_11.sh` … bullseye（Debian 11）ベース。x86 は 3.12 / 3.13 に一本化
+    - `scripts/build_l4t_torch_r35.2.1.sh` / `r35.4.1.sh` / `build_ros_humble_torch_r35.3.1.sh` … JetPack 5 系。実機なし
+    - `scripts/build_llama_gguf_r36.2.0.sh` … 用途が限定的で利用実績なし
+  - 残したもの: `build_py3_12.sh` / `build_py3_13.sh` /
+    `build_l4t_torch_r36.2.0.sh` / `build_allbase_r36.3.0.sh` / `build_torch_2.7-r36.4.0-cu128-24.04.sh`
 
-- [ ] **9.5 `CLAUDE.md` の記述更新**
-  - ベースイメージのバージョン記述（`0.38.0`）が古い（→ 2.4）。
-  - `etc/runtimes` の一覧に `nodeoras` が記載されていない。
+- [x] **9.5 `CLAUDE.md` の位置づけを変更**
+  - 事実の記述（ディレクトリ構成、コマンド一覧、ベースイメージのバージョン、収録ソフト一覧）を全削除。
+    これらが陳腐化の原因そのものであり、実際に `0.38.0` 表記のまま放置されていた。
+  - **方針と禁止事項のみ**を残す構成に変更した。方針は陳腐化しないため、メンテ負担がほぼ消える。
+    - 採用しない方針（CI ビルド / バージョン固定 / `latest` タグ）
+    - 禁止事項（タグ上書き、`docker build` と `deploy.sh` の実行）
+    - 変更時に連動する作業（`manifests/` のコミット、`Dockerfile.tmpl` の波及範囲）
+    - 記述言語
+  - 人間向けの情報は README / `docs/` に集約。README からは収録ソフトのバージョン記述を外し、
+    `manifests/` を正の情報源として参照させる形にした。
+
+- [x] **9.6 `docs/old/` の削除**
+  - 全 7 ファイルを削除。最終更新 2023-09 の Podman 時代の資料。
+  - `docs/old/commands.md` に記載されていたコマンド（`denv` `denvsh` `denvcli` `denvp`
+    `denvdb` `denvdb5` `denv_clear_podman` `denvnote`）は **8 個すべて実体が存在しなかった**。
+  - `config_misc.md` は 0 バイトだった。
