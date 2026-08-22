@@ -24,8 +24,14 @@ services:
       # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
       - ${WORKSPACES_ROOT:-/root/workspaces}:/workspaces
       # Claude Code の認証情報・設定・セッション履歴。
-      # 永続化しないとコンテナを作り直すたびにログインが必要になる。
-      - claude-config:/root/.claude
+      # .claude.json には組織情報(oauthAccount)と機能フラグのキャッシュが入っており、
+      # これが失われると remote-control が
+      # "Unable to determine your organization" で起動できなくなる。
+      # 単一ファイルは名前付きボリュームで扱えないため、
+      # .gitconfig などと同じく bind mount とする。
+      # 事前にホスト側へ実体を作っておくこと(README の準備手順を参照)。
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude:/root/.claude
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude.json:/root/.claude.json
       # 自動更新で取得したバイナリの実体。
       # 永続化しておくと起動のたびに更新をやり直さずに済む。
       - claude-versions:/root/.local/share/claude
@@ -46,6 +52,5 @@ services:
       - TZ=${TZ:-Asia/Tokyo}
 
 volumes:
-  claude-config:
   claude-versions:
   serena-data:

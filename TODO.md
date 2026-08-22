@@ -219,9 +219,27 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     remote-control が依存する機能フラグの評価を無効化してしまう。
     `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けた場合も利用不可。
   - **複数セッション**: サーバモードの `--spawn worktree` / `--capacity` で対応可能。
+  - **`~/.claude.json` の永続化【対応済み・実害あり】**
+    - 当初これを未対応のまま残していたところ、
+      `Unable to determine your organization for Remote Control eligibility`
+      で remote-control が起動できない不具合として顕在化した。
+    - 調査結果: Claude Code は認証トークンを `~/.claude/.credentials.json` に、
+      組織情報（`oauthAccount` … `organizationUuid` / `organizationName` /
+      `organizationRole` / `organizationType`）と
+      Remote Control の可否判定に使う機能フラグのキャッシュ
+      （`cachedGrowthBookFeatures` / `cachedStatsigGates`）を `~/.claude.json` に、
+      **別々に**保存する。
+      前者だけを名前付きボリュームで永続化していたため、
+      `docker compose run --rm` でログインすると
+      トークンだけが残り組織情報が消える状態になっていた。
+    - 対応: 名前付きボリューム `claude-config` を廃止し、
+      `.claude`（ディレクトリ）と `.claude.json`（単一ファイル）を
+      ホスト側 `.devcontainer/denv/` から bind mount する方式へ変更。
+      単一ファイルの bind mount は `.gitconfig` / `.git-credentials` と同じ既存パターン。
+    - Docker は bind mount 先が存在しないとディレクトリを作ってしまうため、
+      `setup.sh` に `mkdir .claude` と `touch .claude.json` を追加した。
+      `setup.sh` を使わない場合の手順も README に記載済み。
   - 残っている検討事項:
-    - `~/.claude.json`（ファイル単体）の永続化。名前付きボリュームはディレクトリ単位のため
-      現状は永続化していない。失われるとワークスペース信頼の再承認が必要になる。
     - ホスト側の Docker ソケットを渡すか否か（渡す場合の権限設計）。
     - コンテナのライフサイクル（常駐か都度起動か）の運用方針。
 

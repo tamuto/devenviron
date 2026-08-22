@@ -38,7 +38,20 @@ VSCode の devcontainer と同じ土台の上で動く。
 export WORKSPACES_ROOT=/root/workspaces
 ```
 
-### 2. イメージをビルドする
+### 2. 設定の置き場所をホスト側に用意する
+
+Claude Code の設定と認証情報はホスト側へ保存する。
+**bind mount するファイルが存在しないと Docker がディレクトリを作ってしまう**ため、
+先に実体を作っておくこと。
+
+```bash
+mkdir -p $WORKSPACES_ROOT/.devcontainer/denv/.claude
+touch    $WORKSPACES_ROOT/.devcontainer/denv/.claude.json
+```
+
+devenviron の `setup.sh` を実行済みであれば、この2つは作成されている。
+
+### 3. イメージをビルドする
 
 ```bash
 docker compose build
@@ -48,7 +61,7 @@ docker compose build
 環境の実体はベースイメージ `tamuto/devenviron` 側で固定されているため、
 誰がいつビルドしても同じ開発環境になる。
 
-### 3. 初回のログインとワークスペース信頼の承認
+### 4. 初回のログインとワークスペース信頼の承認
 
 remote-control のサーバモードは、ログイン済みでないと起動時にエラーで終了する。
 またワークスペースの信頼を一度承認しておく必要がある。
@@ -64,10 +77,10 @@ docker compose run --rm denv-cc-remote claude
 2. `/login` を実行し、ブラウザでサインインする
 3. `/exit` で終了する
 
-認証情報は名前付きボリューム `claude-config`（`/root/.claude`）に保存されるため、
-次回以降このやり取りは不要になる。
+認証情報と組織情報はホスト側の `.devcontainer/denv/.claude` および
+`.devcontainer/denv/.claude.json` に保存されるため、次回以降このやり取りは不要になる。
 
-### 4. 常駐させる
+### 5. 常駐させる
 
 ```bash
 docker compose up -d
@@ -80,7 +93,7 @@ docker compose up -d
 docker compose logs -f
 ```
 
-### 5. 接続する
+### 6. 接続する
 
 [claude.ai/code](https://claude.ai/code) またはスマートフォンの Claude アプリから、
 セッション一覧に表示されるセッションを開く。
@@ -91,7 +104,7 @@ docker compose logs -f
 docker compose down
 ```
 
-名前付きボリュームは残るため、認証情報は保持される。
+認証情報はホスト側に保存されているため保持される。
 
 ## 注意事項
 
@@ -156,6 +169,36 @@ Serena は自動更新されないため、ビルドした時期によってバ�
 ```bash
 docker compose exec denv-cc-remote cat /etc/devenviron/manifest.txt
 ```
+
+## トラブルシューティング
+
+### `Unable to determine your organization for Remote Control eligibility`
+
+ログインには成功しているのに remote-control が起動できない場合、
+**`~/.claude.json` が永続化されていない**ことが原因である可能性が高い。
+
+Claude Code は認証トークンを `~/.claude/.credentials.json` に、
+組織情報（`oauthAccount`）と Remote Control の可否判定に使う機能フラグのキャッシュを
+`~/.claude.json` に、それぞれ別々に保存する。
+後者が失われると、トークンはあるのに組織が判定できない状態になる。
+
+以下を確認する。
+
+```bash
+# ホスト側に実体があるか。ディレクトリになっていたら誤り
+ls -la $WORKSPACES_ROOT/.devcontainer/denv/.claude.json
+
+# コンテナ内から中身が見えているか
+docker compose exec denv-cc-remote sh -c 'ls -la /root/.claude.json; wc -c /root/.claude.json'
+```
+
+`.claude.json` が 0 バイトのままであれば、セットアップ手順4のログインをやり直す。
+
+なお以下を設定していると、機能フラグの評価自体が止まって同様に利用できなくなる。
+
+- `DISABLE_TELEMETRY` / `DO_NOT_TRACK`
+- `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`
+- `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けている
 
 ## サーバモードの主なオプション
 
