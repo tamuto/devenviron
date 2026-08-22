@@ -128,7 +128,14 @@ remote-control は claude.ai への外向き接続で成立する。
 
 ### Serena MCP について
 
-イメージに同梱済みで、Claude Code へユーザスコープで登録してある。
+イメージに同梱済み。**登録はコンテナ起動時に entrypoint が行う。**
+
+ユーザスコープの MCP 登録先は `~/.claude.json` だが、
+このファイルは組織情報の永続化のためホスト側から bind mount している。
+そのためイメージへ焼き込んだ登録は覆い隠されてしまう。
+起動のたびに登録状態を確認して不足を補う方式にしているため、
+イメージを更新した場合も既存の環境へ反映される。
+
 接続状態は Claude Code 内で `/mcp` を実行すると確認できる。
 
 ```
@@ -143,10 +150,11 @@ serena start-mcp-server --context claude-code --project-from-cwd
 取得したものとプロジェクトのインデックスは名前付きボリューム `serena-data`
 （`/root/.serena`）に保存されるため、次回以降は速くなる。
 
-登録内容を確認・変更したい場合は以下。
+登録内容を確認したい場合は以下。
 
 ```bash
 docker compose exec denv-cc-remote claude mcp list
+docker compose exec denv-cc-remote claude mcp get serena
 ```
 
 ### バージョンについて
@@ -199,6 +207,33 @@ docker compose exec denv-cc-remote sh -c 'ls -la /root/.claude.json; wc -c /root
 - `DISABLE_TELEMETRY` / `DO_NOT_TRACK`
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`
 - `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けている
+
+### Serena が MCP として認識されない
+
+まず登録されているかを確認する。
+
+```bash
+docker compose exec denv-cc-remote claude mcp list
+```
+
+`serena` が出てこない場合、起動時の登録に失敗している。
+entrypoint は失敗時に警告を出すため、ログを確認する。
+
+```bash
+docker compose logs denv-cc-remote | grep denv-cc-remote:
+```
+
+手動で登録し直す場合は以下。
+
+```bash
+docker compose exec denv-cc-remote \
+  claude mcp add --scope user serena -- \
+  serena start-mcp-server --context claude-code --project-from-cwd
+```
+
+登録内容は `~/.claude.json`（ホスト側の
+`.devcontainer/denv/.claude.json`）に保存される。
+このファイルが 0 バイトのままであれば、bind mount が効いていない。
 
 ## サーバモードの主なオプション
 

@@ -29,11 +29,13 @@ ENV PATH="/root/.local/bin:${PATH}"
 RUN uv tool install -p 3.13 serena-agent \
 &&  serena init < /dev/null
 
-# Claude Code へユーザスコープで登録する。
-#   --context claude-code  … Claude Code 向けのツール設定を使う
-#   --project-from-cwd     … 起動時のカレントディレクトリをプロジェクトとして扱う
-RUN claude mcp add --scope user serena -- \
-      serena start-mcp-server --context claude-code --project-from-cwd
+# MCP サーバの登録はビルド時に行わない。
+# ユーザスコープの登録先は ~/.claude.json だが、このファイルは
+# 組織情報を永続化するためホスト側から bind mount しており、
+# イメージに焼いた内容が覆い隠されてしまうため。
+# 代わりに entrypoint で起動のたびに登録状態を確認する。
+COPY entrypoint.sh /usr/local/bin/denv-cc-entrypoint
+RUN chmod +x /usr/local/bin/denv-cc-entrypoint
 
 # 初回利用時に対象言語の language server を取得するため、
 # MCP の起動が既定のタイムアウトに収まらないことがある。
@@ -43,4 +45,5 @@ WORKDIR /workspaces
 
 # サーバモード。claude.ai への外向き接続を待ち受ける。
 # 事前に一度ログインとワークスペース信頼の承認が必要。README.md を参照。
+ENTRYPOINT ["/usr/local/bin/denv-cc-entrypoint"]
 CMD ["claude", "remote-control"]
