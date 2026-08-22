@@ -1,0 +1,77 @@
+#!/bin/sh
+# DevEnviron ビルドマニフェスト生成スクリプト
+#
+# イメージのビルド時点で実際に導入されたソフトウェアのバージョンを記録する。
+# DevEnvironは「常に最新を導入する」方針のためバージョン固定を行わない。
+# 代わりに、この記録によって構成の追跡可能性を担保する。
+#
+# ビルド時にDockerfileの最終層から実行され、/etc/devenviron/manifest.txt に出力される。
+# コンテナ内からは以下で参照できる。
+#   cat /etc/devenviron/manifest.txt
+
+set -u
+
+# ベースイメージによって導入されているコマンドが異なるため、
+# 存在しないコマンドは "(not installed)" として記録し、処理は継続する。
+_ver() {
+    _label=$1
+    shift
+    if command -v "$1" >/dev/null 2>&1; then
+        _out=$("$@" 2>&1 | head -n 1)
+    else
+        _out="(not installed)"
+    fi
+    printf '%-24s %s\n' "$_label" "$_out"
+}
+
+_section() {
+    echo ""
+    echo "===== $1 ====="
+}
+
+echo "===== DevEnviron ====="
+printf '%-24s %s\n' "version"    "${DENV_VERSION:-unknown}"
+printf '%-24s %s\n' "revision"   "${DENV_REVISION:-unknown}"
+printf '%-24s %s\n' "base image" "${DENV_BASEIMG:-unknown}"
+printf '%-24s %s\n' "created"    "${DENV_CREATED:-unknown}"
+printf '%-24s %s\n' "platform"   "$(uname -m)"
+
+_section "OS"
+if [ -r /etc/os-release ]; then
+    cat /etc/os-release
+else
+    echo "(unavailable)"
+fi
+
+_section "Toolchain"
+_ver "python"                python --version
+_ver "python3"               python3 --version
+_ver "pip"                   pip --version
+_ver "uv"                    uv --version
+_ver "poetry"                poetry --version
+_ver "node"                  node --version
+_ver "pnpm"                  pnpm --version
+_ver "volta"                 volta --version
+_ver "terraform"             terraform version
+_ver "aws"                   aws --version
+_ver "session-manager-plugin" session-manager-plugin --version
+_ver "git"                   git --version
+_ver "git-lfs"               git-lfs --version
+_ver "svn"                   svn --version
+_ver "sqlite3"               sqlite3 --version
+_ver "ffmpeg"                ffmpeg -version
+_ver "jq"                    jq --version
+
+_section "Python packages"
+if command -v pip >/dev/null 2>&1; then
+    pip list --format=freeze 2>/dev/null | sort
+else
+    echo "(pip not installed)"
+fi
+
+_section "APT packages"
+if command -v dpkg-query >/dev/null 2>&1; then
+    dpkg-query -W -f='${Package}\t${Version}\n' 2>/dev/null | sort
+else
+    echo "(dpkg not available)"
+fi
