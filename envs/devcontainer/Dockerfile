@@ -1,1 +1,1 @@
-FROM tamuto/devenviron:2026.08.0
+FROM tamuto/devenviron:2026.08.1

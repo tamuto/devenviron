@@ -57,7 +57,7 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
     docker run --rm docker.io/tamuto/devenviron:$1 cat /etc/devenviron/manifest.txt \
       > manifests/devenviron-$1.txt
     ```
-  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-2026.08.0.txt manifests/devenviron-2026.09.0.txt`
+  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-2026.08.1.txt manifests/devenviron-2026.09.0.txt`
     で **タグ間で何のバージョンが変わったのかが完全に見える**。
   - CHANGELOG を手書きしなくても、実質的な変更履歴がこれで残る。
 

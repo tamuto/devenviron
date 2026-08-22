@@ -33,7 +33,7 @@ SemVerの`0.42.0`は中身について何も語らないが、
 `2026.08.0`という番号自体が「2026年8月時点の最新構成」を表すことになり、方針と意味が一致する。
 
 `0.41.0`以前のdevenvironはSemVerで発行されている。
-`2026.08.0`以降がCalVerとなるが、日付形式が明らかに異なるため新旧の区別は付く。
+`2026.08.1`以降がCalVerとなるが、日付形式が明らかに異なるため新旧の区別は付く。
 過去のタグを振り直すことはしない（タグ不変ポリシーのため）。
 
 **本ドキュメントのビルド・リリース手順は既存系統（`tamuto/devenviron`）を対象とする。**
@@ -135,7 +135,7 @@ DevEnvironは「常に最新を導入する」方針のため、ソフトウェ�
 cat /etc/devenviron/manifest.txt
 
 # タグ間の差分（何のバージョンが上がったか）
-git diff --no-index manifests/devenviron-2026.08.0.txt manifests/devenviron-2026.09.0.txt
+git diff --no-index manifests/devenviron-2026.08.1.txt manifests/devenviron-2026.09.0.txt
 
 # イメージのラベル（バージョン・コミット・ベースイメージ・ビルド日時）
 docker inspect --format '{{json .Config.Labels}}' docker.io/tamuto/devenviron:<image-tag>

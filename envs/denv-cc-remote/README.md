@@ -11,6 +11,12 @@ VSCode の devcontainer と同じ土台の上で動く。
 このフォルダ一式（`Dockerfile` と `docker-compose.yaml`）を配布すれば、
 各利用者が同じ環境を再現できる。
 
+## 同梱しているもの
+
+- **Claude Code** … ネイティブインストーラで導入。バックグラウンドで自動更新される。
+- **Serena MCP** … セマンティックなコード検索・編集ツールを提供する MCP サーバ。
+  ユーザスコープで登録済みのため、追加の設定なしに利用できる。
+
 ## 前提
 
 - Docker および Docker Compose が利用できること
@@ -99,6 +105,29 @@ Amazon Bedrock / Google Cloud's Agent Platform / Microsoft Foundry 経由でも�
 
 remote-control は claude.ai への外向き接続で成立する。
 コンテナ側で待ち受けるポートはないため、ポートの公開設定は不要。
+
+### Serena MCP について
+
+イメージに同梱済みで、Claude Code へユーザスコープで登録してある。
+接続状態は Claude Code 内で `/mcp` を実行すると確認できる。
+
+```
+serena start-mcp-server --context claude-code --project-from-cwd
+```
+
+`--project-from-cwd` により、起動時のカレントディレクトリが対象プロジェクトになる。
+コンテナの作業ディレクトリは `/workspaces` である。
+
+初回利用時は対象言語の language server を取得するため、起動に時間がかかることがある。
+このため `MCP_TIMEOUT=60000` を設定してある。
+取得したものとプロジェクトのインデックスは名前付きボリューム `serena-data`
+（`/root/.serena`）に保存されるため、次回以降は速くなる。
+
+登録内容を確認・変更したい場合は以下。
+
+```bash
+docker compose exec denv-cc-remote claude mcp list
+```
 
 ### バージョンについて
 

@@ -25,6 +25,9 @@ services:
       # 自動更新で取得したバイナリの実体。
       # 永続化しておくと起動のたびに更新をやり直さずに済む。
       - claude-versions:/root/.local/share/claude
+      # Serena の設定とプロジェクトのインデックス、および取得済みの language server。
+      # 永続化しないとコンテナを作り直すたびに再取得・再インデックスになる。
+      - serena-data:/root/.serena
       # 開発で利用する認証情報。devcontainer 側と同じものを共有する。
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
@@ -41,3 +44,4 @@ services:
 volumes:
   claude-config:
   claude-versions:
+  serena-data:

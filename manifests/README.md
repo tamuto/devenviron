@@ -24,7 +24,7 @@ DevEnvironは開発環境であるため「常に最新を導入する」方針�
 タグ間で何のバージョンが上がったのかは、そのままdiffで確認できる。
 
 ```bash
-git diff --no-index manifests/devenviron-2026.08.0.txt manifests/devenviron-2026.09.0.txt
+git diff --no-index manifests/devenviron-2026.08.1.txt manifests/devenviron-2026.09.0.txt
 ```
 
 ## コンテナ内からの確認
