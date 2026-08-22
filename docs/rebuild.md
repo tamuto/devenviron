@@ -80,14 +80,20 @@ git commit -m "0.42.0のビルドマニフェストを追加"
 
 ### 4. 配布するバージョンを更新する
 
-`template/Dockerfile`の`FROM`を新しいタグへ書き換える。
+devenviron を土台とする派生イメージ側の`FROM`を、新しいタグへ書き換える。
+**両方を必ず同じバージョンに揃えること。**
+VSCode から作業しても remote-control から作業しても同じ環境になることを、
+これで担保している。
+
+- `envs/devcontainer/Dockerfile` … VSCode devcontainer 用
+- `envs/denv-cc-remote/Dockerfile` … remote-control 用
 
 ```dockerfile
 FROM tamuto/devenviron:0.42.0
 ```
 
-**このファイルが配布バージョンの単一情報源**である。
-README・TODO.md・その他ドキュメントにバージョン番号を書かないこと。
+**この2ファイル以外にバージョン番号を書かないこと。**
+README・TODO.md・その他ドキュメントには記載しない。
 過去に複数箇所へ記載した結果、実際に乖離が発生している。
 
 ### 5. リポジトリにタグを打つ

@@ -10,6 +10,16 @@
 - Windowsの場合は、[WSL2+Ubuntu](./docs/setup_windows.md)を参照。
 - Macは検証環境がないため現在サポートしていない。
 
+## 利用環境
+
+`envs/`配下に、devenvironをベースとした利用環境の定義を置いている。
+いずれも同じdevenvironを土台とするため、どちらから作業しても同じ環境になる。
+
+- [`envs/devcontainer/`](./envs/devcontainer/) … VSCodeのdevcontainerで利用する（従来からの方式）
+- [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) … Claude Codeをremote-controlで動かす。
+  devcontainerを前提とせずdocker composeで起動する。
+  詳細は[こちら](./envs/denv-cc-remote/README.md)を参照。
+
 ## 独自コマンド
 
 - devenvironが用意する独自コマンドが存在する。
