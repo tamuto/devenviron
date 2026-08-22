@@ -1,0 +1,43 @@
+# Claude Code を remote-control で動かすための環境定義。
+#
+# このファイル一式を配布すれば、各利用者が同じ環境を再現できる。
+# 手順は README.md を参照。
+#
+# remote-control は claude.ai への外向き通信のみで成立するため、
+# ポート公開は不要。
+
+services:
+  denv-cc-remote:
+    image: docker.io/tamuto/denv-cc-remote:2026.08.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: denv-cc-remote
+    working_dir: /workspaces
+    stdin_open: true
+    tty: true
+    volumes:
+      # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
+      - ${WORKSPACES_ROOT:-/root/workspaces}:/workspaces
+      # Claude Code の認証情報・設定・セッション履歴。
+      # 永続化しないとコンテナを作り直すたびにログインが必要になる。
+      - claude-config:/root/.claude
+      # 自動更新で取得したバイナリの実体。
+      # 永続化しておくと起動のたびに更新をやり直さずに済む。
+      - claude-versions:/root/.local/share/claude
+      # 開発で利用する認証情報。devcontainer 側と同じものを共有する。
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.gitconfig:/root/.gitconfig
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.git-credentials:/root/.git-credentials
+    environment:
+      # remote-control は機能フラグの評価結果に依存するため、
+      # 以下を設定すると利用できなくなる。設定しないこと。
+      #   DISABLE_TELEMETRY / DO_NOT_TRACK
+      #   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC / DISABLE_GROWTHBOOK
+      # また ANTHROPIC_BASE_URL を api.anthropic.com 以外へ向けると利用できない。
+      - TZ=${TZ:-Asia/Tokyo}
+
+volumes:
+  claude-config:
+  claude-versions:

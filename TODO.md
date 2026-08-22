@@ -57,7 +57,7 @@ DevEnviron のレビュー結果と、それに対する方針決定をまとめ
     docker run --rm docker.io/tamuto/devenviron:$1 cat /etc/devenviron/manifest.txt \
       > manifests/devenviron-$1.txt
     ```
-  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-0.41.0.txt manifests/devenviron-0.42.0.txt`
+  - `manifests/` をリポジトリに含めることで、`git diff manifests/devenviron-2026.08.0.txt manifests/devenviron-2026.09.0.txt`
     で **タグ間で何のバージョンが変わったのかが完全に見える**。
   - CHANGELOG を手書きしなくても、実質的な変更履歴がこれで残る。
 
@@ -167,40 +167,60 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
   - 決定内容は `CLAUDE.md` にも記載済み（系統の取り違え防止のため）。
 
 - [x] **3.2 バージョン体系の分離（決定）**
-  - 新系統は **CalVer `YYYY.MM.<patch>`**（例: `2026.08.0`）を採用する。
+  - **CalVer `YYYY.MM.<patch>`**（例: `2026.08.0`）を採用する。
     同一月内の再ビルドは `<patch>` で区別する。
+  - **【変更】当初は新系統のみ CalVer とし既存は SemVer 維持としたが、
+    ベースイメージ `tamuto/devenviron` も CalVer へ移行することにした。**
+    ベースと派生でバージョン体系が異なると、対応関係が読み取りにくいため。
+    移行後の初版は `2026.08.0`。
   - 採用理由:
     - 「常に最新を導入する」方針では、イメージの中身は**いつ焼いたか**でほぼ決まる。
       SemVer の `0.42.0` は中身について何も語らないが、`2026.08.0` は
       「2026年8月時点の最新構成」という情報そのものになり、方針と意味が一致する。
-    - `0.41.0` と `2026.08.0` は**一目で系統が違うと判る**ため、
-      2系統併走中の取り違えが起きない。
     - 1.2 のマニフェストと組み合わせると「いつの版か」＋「何が入っていたか」が揃う。
-  - 既存 `tamuto/devenviron` は SemVer のまま維持する（体系を後から変えない）。
+  - `0.41.0` 以前は SemVer で発行済み。日付形式が明らかに異なるため新旧の区別は付く。
+    過去のタグを振り直すことはしない（タグ不変ポリシーのため）。
 
-- [ ] **3.3 起動インターフェースの設計（devcontainer 非依存）**
-  - **前提**: 新系統は devcontainer を想定しない。必要に応じて compose を用いる。
-    セットアップ手順そのものが既存とは別系統になるため、`setup.sh` は流用しない。
-  - 検討事項:
-    - compose ファイルの配置場所とリポジトリ内の構成
-    - 既存の `.devcontainer/denv/` に依存しない認証情報の受け渡し方法
-    - 新系統向けのセットアップ手順（既存の `docs/setup_windows.md` とは別立て）
-  - **依存**: `deploy.sh` は現在 `tamuto/devenviron` を決め打ちしている。
-    新系統の配布時にイメージ名を引数化するか、専用のデプロイ経路を用意する必要がある。
-  - **依存**: 新系統のビルドにも 1 章と同等のマニフェスト記録の仕組みが要る。
-    `etc/runtimes/` 配下のランタイムイメージにもまだ入っていないため、あわせて設計する。
+- [x] **3.3 起動インターフェースの設計（devcontainer 非依存）**
+  - `envs/denv-cc-remote/` に `Dockerfile` と `docker-compose.yaml` を作成した。
+    スクリプトは用意せず compose で完結させている。
+    このフォルダ一式を配布すれば各利用者が同じ環境を再現できる。
+  - `docker-compose.yaml` は `image:` と `build:` の両方を持つ。
+    利用者は `docker compose pull` で済み、必要なときだけ `build` できる。
+  - **ポート公開は不要**であることが判明した。
+    remote-control は claude.ai への外向き接続で成立し、待ち受けポートを持たない。
+  - ベースバージョンは `envs/devcontainer/Dockerfile` と
+    `envs/denv-cc-remote/Dockerfile` の2ファイルに素で記載する。
+    スクリプトによる抽出は行わない（間接化を避けるため）。
+    リリース手順（`docs/rebuild.md`）に「両方を揃える」ステップを明記した。
 
-- [ ] **3.4 必要要件の洗い出し**
-  - Claude Code の認証情報（`~/.claude`）の永続化とマウント設計
-  - remote-control の接続経路（ポート / トンネル / 認証）
-  - 複数セッションの同時起動時のワークスペース分離とコンテナ命名
-  - コンテナのライフサイクル（起動しっぱなしか、都度起動か）
-  - ホスト側の Docker ソケットを渡すか否か（渡す場合の権限設計）
+- [x] **3.4 必要要件の洗い出し（主要部分）**
+  - **Claude Code の導入方式**: ネイティブインストーラ（`curl -fsSL https://claude.ai/install.sh | bash`）。
+    npm 版は 2026-01 (v2.1.15) に非推奨。結局同じネイティブバイナリを入れるだけで利点がない。
+  - **マニフェスト不要**: ネイティブ版はバックグラウンドで自動更新するため、
+    ビルド時にバージョンを記録しても即座に無意味になる。
+    記録が必要な構成はベースイメージ側の `/etc/devenviron/manifest.txt` が持つ。
+  - **認証情報の永続化**: 名前付きボリューム `claude-config` を `/root/.claude` へ。
+    自動更新されたバイナリの実体は `claude-versions` を `/root/.local/share/claude` へ。
+  - **初回のみ対話操作が必要**: サーバモードはログイン済みでないと起動時にエラー終了する。
+    またワークスペース信頼の承認も必要。`docker compose run --rm ... claude` で済ませる。
+  - **設定してはいけない環境変数**: `DISABLE_TELEMETRY` / `DO_NOT_TRACK` /
+    `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`。
+    remote-control が依存する機能フラグの評価を無効化してしまう。
+    `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けた場合も利用不可。
+  - **複数セッション**: サーバモードの `--spawn worktree` / `--capacity` で対応可能。
+  - 残っている検討事項:
+    - `~/.claude.json`（ファイル単体）の永続化。名前付きボリュームはディレクトリ単位のため
+      現状は永続化していない。失われるとワークスペース信頼の再承認が必要になる。
+    - ホスト側の Docker ソケットを渡すか否か（渡す場合の権限設計）。
+    - コンテナのライフサイクル（常駐か都度起動か）の運用方針。
 
 - [ ] **3.5 既存 devenviron との責務整理**
-  - 現行 `devenviron` を維持するのか、段階的に新系統へ寄せるのかを決めて README に明記する。
-  - メンバーが「どちらを使えばよいか」で迷わない状態にする。
-  - 現時点では新系統の実体がないため、README への記載は 3.3 の実装後に行う。
+  - README に `envs/` 配下の2つを併記した（devcontainer / denv-cc-remote）。
+    どちらも同じ devenviron を土台とすることも明記済み。
+  - **未決**: 現行の devcontainer 方式を維持し続けるのか、段階的に新系統へ寄せるのか。
+    メンバーが「どちらを使えばよいか」で迷わない状態にするには、
+    推奨する方をどこかで示す必要がある。denv-cc-remote の運用実績が出てから判断する。
 
 ---
 
@@ -224,7 +244,7 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
 - [ ] **4.3 セットアップ内容をバージョンに追随させる**
   - 現在 `setup.sh` は GitHub API のデフォルトブランチ先端を取得するため、
     リポジトリを更新した瞬間に、既存メンバーの再セットアップ結果が変わる。
-  - `?ref=v0.41.0` のように取得元を明示できるようにし、
+  - `?ref=v2026.08.0` のように取得元を明示できるようにし、
     `setup.sh <version>` で「そのバージョン一式」を取れるようにする。
   - タグ不変ポリシー（0.1）とセットアップ側の整合が取れる。
 
@@ -429,3 +449,17 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
   - `docs/old/commands.md` に記載されていたコマンド（`denv` `denvsh` `denvcli` `denvp`
     `denvdb` `denvdb5` `denv_clear_podman` `denvnote`）は **8 個すべて実体が存在しなかった**。
   - `config_misc.md` は 0 バイトだった。
+
+- [x] **9.7 `etc/` の解体とディレクトリ構成の整理**
+  - `etc/` は雑多な置き場になっていたため解体した。
+    - `etc/runtimes/` → `runtimes/`（トップレベルへ昇格）
+    - `etc/resources/commands.drawio` → `docs/img/`（生成物の svg の隣へ）
+  - 利用環境の定義を `envs/` に集約した。
+    - `template/devcontainer.json` / `template/Dockerfile` → `envs/devcontainer/`
+      （どちらも devenviron 本体のビルドには不要なため）
+    - `envs/denv-cc-remote/` を新設
+  - `template/` はベースイメージの定義（`container/`）とホストコマンド（`shell/`）のみになった。
+  - `runtimes/README.md` に位置づけを明記した。
+    こちらは別プロジェクトへ提供する補助ツールであり、
+    `envs/` 配下の正式な配布環境とは扱いが異なる。
+  - `setup.sh` の取得パスを新しい配置に追随させた。
