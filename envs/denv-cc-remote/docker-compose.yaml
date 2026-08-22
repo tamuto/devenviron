@@ -8,7 +8,11 @@
 
 services:
   denv-cc-remote:
-    image: docker.io/tamuto/denv-cc-remote:2026.08.0
+    # レジストリへは公開しない。各利用者の手元でビルドして使う。
+    # バージョン番号を持つのはベースイメージ (Dockerfile の FROM) だけであり、
+    # 「どの devenviron の上に構築されたか」で環境が一意に定まる。
+    # local タグはローカルビルドであることを示すための固定値。
+    image: denv-cc-remote:local
     build:
       context: .
       dockerfile: Dockerfile

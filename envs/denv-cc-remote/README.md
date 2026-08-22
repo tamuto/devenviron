@@ -11,6 +11,10 @@ VSCode の devcontainer と同じ土台の上で動く。
 このフォルダ一式（`Dockerfile` と `docker-compose.yaml`）を配布すれば、
 各利用者が同じ環境を再現できる。
 
+**このイメージ自体はレジストリへ公開しない。** バージョン番号も持たない。
+環境の実体はベースイメージ側で固定されているため、
+`Dockerfile` の `FROM` が指す devenviron のバージョンだけで環境が一意に定まる。
+
 ## 同梱しているもの
 
 - **Claude Code** … ネイティブインストーラで導入。バックグラウンドで自動更新される。
@@ -34,12 +38,15 @@ VSCode の devcontainer と同じ土台の上で動く。
 export WORKSPACES_ROOT=/root/workspaces
 ```
 
-### 2. イメージを取得またはビルドする
+### 2. イメージをビルドする
 
 ```bash
-docker compose pull    # 公開イメージを利用する場合
-docker compose build   # 手元でビルドする場合
+docker compose build
 ```
+
+このイメージはレジストリへ公開していない。各利用者が手元でビルドして使う。
+環境の実体はベースイメージ `tamuto/devenviron` 側で固定されているため、
+誰がいつビルドしても同じ開発環境になる。
 
 ### 3. 初回のログインとワークスペース信頼の承認
 
@@ -131,9 +138,17 @@ docker compose exec denv-cc-remote claude mcp list
 
 ### バージョンについて
 
+**このイメージ自身はバージョン番号を持たない。**
+基準となるのは `Dockerfile` の `FROM` が指す devenviron のバージョンだけである。
+派生イメージ側にも番号を振ると、どちらがどの環境を指すのか読み取れなくなるため。
+
 Claude Code のネイティブインストーラは
 バックグラウンドで自動更新するため、バージョンは固定していない。
 「常に最新を導入する」という本プロジェクトの方針とも一致する。
+
+Serena は自動更新されないため、ビルドした時期によってバージョンが変わる。
+利用者間で揃える必要が生じた場合は、`Dockerfile` で
+`serena-agent==<version>` のように指定すればよい。
 
 このためこのイメージにビルドマニフェストは用意していない。
 記録が必要な構成はベースイメージ側が `/etc/devenviron/manifest.txt` に持つ。

@@ -20,6 +20,11 @@
   devcontainerを前提とせずdocker composeで起動する。
   詳細は[こちら](./envs/denv-cc-remote/README.md)を参照。
 
+レジストリへ公開しているのはベースイメージの`tamuto/devenviron`だけで、
+`envs/`配下の各環境は利用者の手元でビルドする。
+このためバージョン番号を持つのはベースイメージだけであり、
+「どのdevenvironの上に構築されたか」で環境が一意に定まる。
+
 ## 独自コマンド
 
 - devenvironが用意する独自コマンドが存在する。
