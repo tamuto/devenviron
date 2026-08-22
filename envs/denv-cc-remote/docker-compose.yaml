@@ -5,51 +5,94 @@
 #
 # remote-control は claude.ai への外向き通信のみで成立するため、
 # ポート公開は不要。
+#
+# ■ プロジェクトごとにサービスを定義すること
+#
+# remote-control のサーバは 1 つにつき 1 ディレクトリしか扱えない。
+# --spawn same-dir(既定) では、スマホから新規セッションを作っても
+# すべてサーバの作業ディレクトリで動く。サブフォルダは列挙されない。
+#
+# claude.ai のセッション一覧にプロジェクトを並べたい場合は、
+# 下の例のようにプロジェクトごとにサービスを定義する。
+# 共通設定は YAML のアンカーで使い回せる。
+
+x-denv-cc-remote: &denv-cc-remote
+  # レジストリへは公開しない。各利用者の手元でビルドして使う。
+  # バージョン番号を持つのはベースイメージ (Dockerfile の FROM) だけであり、
+  # 「どの devenviron の上に構築されたか」で環境が一意に定まる。
+  # local タグはローカルビルドであることを示すための固定値。
+  image: denv-cc-remote:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+  stdin_open: true
+  tty: true
+  volumes:
+    # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
+    # サーバの作業ディレクトリは working_dir で切り替える。
+    - ${WORKSPACES_ROOT:-/root/workspaces}:/workspaces
+    # Claude Code の認証情報・設定・セッション履歴。
+    # .claude.json には組織情報(oauthAccount)と機能フラグのキャッシュが入っており、
+    # これが失われると remote-control が
+    # "Unable to determine your organization" で起動できなくなる。
+    # 単一ファイルは名前付きボリュームで扱えないため、
+    # .gitconfig などと同じく bind mount とする。
+    # 事前にホスト側へ実体を作っておくこと(README の準備手順を参照)。
+    - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude:/root/.claude
+    - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude.json:/root/.claude.json
+    # 自動更新で取得したバイナリの実体。
+    # 永続化しておくと起動のたびに更新をやり直さずに済む。
+    - claude-versions:/root/.local/share/claude
+    # Serena の設定とプロジェクトのインデックス、および取得済みの language server。
+    # 永続化しないとコンテナを作り直すたびに再取得・再インデックスになる。
+    - serena-data:/root/.serena
+    # 開発で利用する認証情報。devcontainer 側と同じものを共有する。
+    - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
+    - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
+    - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.gitconfig:/root/.gitconfig
+    - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.git-credentials:/root/.git-credentials
+  environment:
+    # remote-control は機能フラグの評価結果に依存するため、
+    # 以下を設定すると利用できなくなる。設定しないこと。
+    #   DISABLE_TELEMETRY / DO_NOT_TRACK
+    #   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC / DISABLE_GROWTHBOOK
+    # また ANTHROPIC_BASE_URL を api.anthropic.com 以外へ向けると利用できない。
+    - TZ=${TZ:-Asia/Tokyo}
 
 services:
+  # 既定のサーバ。/workspaces 全体を作業ディレクトリとする。
+  # 初回セットアップ(ログイン・MCP登録)にもこのサービスを使う。
+  #   docker compose run --rm denv-cc-remote <command>
+  #
+  # プロジェクトごとに分けたい場合は、下の例を有効にしてこちらを消してよい。
   denv-cc-remote:
-    # レジストリへは公開しない。各利用者の手元でビルドして使う。
-    # バージョン番号を持つのはベースイメージ (Dockerfile の FROM) だけであり、
-    # 「どの devenviron の上に構築されたか」で環境が一意に定まる。
-    # local タグはローカルビルドであることを示すための固定値。
-    image: denv-cc-remote:local
-    build:
-      context: .
-      dockerfile: Dockerfile
+    <<: *denv-cc-remote
     container_name: denv-cc-remote
     working_dir: /workspaces
-    stdin_open: true
-    tty: true
-    volumes:
-      # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
-      - ${WORKSPACES_ROOT:-/root/workspaces}:/workspaces
-      # Claude Code の認証情報・設定・セッション履歴。
-      # .claude.json には組織情報(oauthAccount)と機能フラグのキャッシュが入っており、
-      # これが失われると remote-control が
-      # "Unable to determine your organization" で起動できなくなる。
-      # 単一ファイルは名前付きボリュームで扱えないため、
-      # .gitconfig などと同じく bind mount とする。
-      # 事前にホスト側へ実体を作っておくこと(README の準備手順を参照)。
-      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude:/root/.claude
-      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude.json:/root/.claude.json
-      # 自動更新で取得したバイナリの実体。
-      # 永続化しておくと起動のたびに更新をやり直さずに済む。
-      - claude-versions:/root/.local/share/claude
-      # Serena の設定とプロジェクトのインデックス、および取得済みの language server。
-      # 永続化しないとコンテナを作り直すたびに再取得・再インデックスになる。
-      - serena-data:/root/.serena
-      # 開発で利用する認証情報。devcontainer 側と同じものを共有する。
-      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
-      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
-      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.gitconfig:/root/.gitconfig
-      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.git-credentials:/root/.git-credentials
-    environment:
-      # remote-control は機能フラグの評価結果に依存するため、
-      # 以下を設定すると利用できなくなる。設定しないこと。
-      #   DISABLE_TELEMETRY / DO_NOT_TRACK
-      #   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC / DISABLE_GROWTHBOOK
-      # また ANTHROPIC_BASE_URL を api.anthropic.com 以外へ向けると利用できない。
-      - TZ=${TZ:-Asia/Tokyo}
+    command: ["claude", "remote-control", "--name", "${SESSION_NAME:-workspaces}"]
+
+  # --- 以下、プロジェクトごとのサーバ ---
+  #
+  # --name でセッション一覧に出る名前を指定する。
+  # 指定しない場合はコンテナのホスト名を接頭辞にした自動生成名になる。
+  #
+  # 対象が git リポジトリであれば --spawn worktree を付けると、
+  # スマホから作った各セッションが個別の worktree を持ち、
+  # 同じファイルを取り合わなくなる。
+  #
+  # 実際のプロジェクトに合わせて名前とパスを書き換えること。
+
+  # myproject:
+  #   <<: *denv-cc-remote
+  #   container_name: denv-cc-myproject
+  #   working_dir: /workspaces/myproject
+  #   command: ["claude", "remote-control", "--name", "myproject", "--spawn", "worktree"]
+  #
+  # another:
+  #   <<: *denv-cc-remote
+  #   container_name: denv-cc-another
+  #   working_dir: /workspaces/another
+  #   command: ["claude", "remote-control", "--name", "another"]
 
 volumes:
   claude-versions:

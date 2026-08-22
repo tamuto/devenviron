@@ -281,6 +281,61 @@ docker compose exec denv-cc-remote which serena
 コンテナ内で後から `uv tool install` や `npm install -g` で入れたツールは
 コンテナを作り直すと消える。常設したいものは `Dockerfile` に追加すること。
 
+## 複数プロジェクトを扱う
+
+**remote-control のサーバは 1 つにつき 1 ディレクトリしか扱えない。**
+`--spawn same-dir`（既定）では、スマホや claude.ai から新規セッションを作っても
+すべてサーバの作業ディレクトリで動く。サブフォルダが列挙されることはない。
+
+そのため `/workspaces` のような「リポジトリの親ディレクトリ」で1つだけ起動しても、
+プロジェクトごとのセッションにはならない。
+公式ドキュメントにも
+「The startup trust dialog never saves trust for your home directory,
+so start Remote Control from a project directory.」とあり、
+プロジェクトディレクトリから起動することが前提になっている。
+
+### プロジェクトごとにサービスを定義する
+
+claude.ai のセッション一覧にプロジェクトを並べたい場合は、
+プロジェクトごとにサーバを立てる。
+`docker-compose.yaml` に YAML アンカーを用意してあるので、
+共通設定を書き写す必要はない。
+
+```yaml
+services:
+  myproject:
+    <<: *denv-cc-remote
+    container_name: denv-cc-myproject
+    working_dir: /workspaces/myproject
+    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "worktree"]
+
+  another:
+    <<: *denv-cc-remote
+    container_name: denv-cc-another
+    working_dir: /workspaces/another
+    command: ["claude", "remote-control", "--name", "another"]
+```
+
+```bash
+docker compose up -d
+```
+
+これで claude.ai のセッション一覧に `myproject` と `another` が並び、
+それぞれからセッションを開始できる。
+
+### 1プロジェクト内で複数セッションを使う
+
+対象が git リポジトリであれば `--spawn worktree` を付けるとよい。
+スマホから作った各セッションが個別の
+[git worktree](https://code.claude.com/docs/en/worktrees) を持つため、
+同じファイルを取り合わなくなる。
+
+既定の `same-dir` でも複数セッションは作れるが、
+すべて同じ作業ディレクトリを共有するため、
+同じファイルを編集すると競合する。
+
+同時セッション数の上限は `--capacity <N>`（既定32）で変えられる。
+
 ## サーバモードの主なオプション
 
 `docker-compose.yaml` の `command` で指定できる。
@@ -288,6 +343,7 @@ docker compose exec denv-cc-remote which serena
 | オプション | 説明 |
 | --- | --- |
 | `--name "<名前>"` | claude.ai のセッション一覧に表示される名前を指定する |
+| `--remote-control-session-name-prefix <接頭辞>` | 自動生成名の接頭辞。既定はホスト名で `myhost-graceful-unicorn` のような名前になる。環境変数 `CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX` でも同じ |
 | `--spawn worktree` | セッションごとに git worktree を分ける。gitリポジトリが必要 |
 | `--spawn session` | 単一セッションのみ受け付ける |
 | `--capacity <N>` | 同時セッション数の上限。既定は32 |
