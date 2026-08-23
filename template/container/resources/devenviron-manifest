@@ -64,6 +64,21 @@ _ver "sqlite3"               sqlite3 --version
 _ver "ffmpeg"                ffmpeg -version
 _ver "jq"                    jq --version
 
+_section "Extra CA certificates"
+# ca-certificates に未収録のルート証明書を追加している場合、
+# 何をどの理由で信頼させているかを記録に残す。
+if [ -d /usr/local/share/ca-certificates ] && [ -n "$(ls -A /usr/local/share/ca-certificates 2>/dev/null)" ]; then
+    for _crt in /usr/local/share/ca-certificates/*.crt; do
+        [ -f "$_crt" ] || continue
+        echo "$(basename "$_crt")"
+        if command -v openssl >/dev/null 2>&1; then
+            openssl x509 -in "$_crt" -noout -subject -issuer -fingerprint -sha1 2>&1 | sed 's/^/    /'
+        fi
+    done
+else
+    echo "(none)"
+fi
+
 _section "Python packages"
 if command -v pip >/dev/null 2>&1; then
     pip list --format=freeze 2>/dev/null | sort

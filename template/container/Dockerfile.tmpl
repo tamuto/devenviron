@@ -18,7 +18,20 @@ RUN apt-get update && apt-get install -y \
     curl build-essential git git-lfs sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
     default-mysql-client subversion ffmpeg sox jq zip gettext-base lsb-release \
+    ca-certificates \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 信頼ストアへ追加する証明書。詳細と削除の判断基準は docs/certificates.md を参照。
+#
+# JPRSは2026年6月17日以降に発行するサーバー証明書を
+# 新ルート「SECOM TLS RSA Root CA 2024」の系統へ切り替えたが、
+# このルートはまだ ca-certificates に収録されていない。
+# そのため新ルートを既存の Security Communication RootCA2 で
+# クロス署名した証明書を追加し、検証できるようにする。
+#
+# これは ca-certificates が新ルートを収録するまでの暫定措置である。
+COPY resources/certs/ /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null \
 &&  gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint \
@@ -83,6 +96,13 @@ COPY resources/devenviron-manifest /usr/local/bin/devenviron-manifest
 # (従来は.bashrcでのみPATHを通していたため`docker run <image> node -v`が失敗していた)
 ENV VOLTA_HOME="/root/.volta"
 ENV PATH="/root/.volta/bin:${PATH}"
+
+# node と python(requests系) は既定でOSの信頼ストアを見ず、
+# それぞれ独自のバンドルを使うため、追加した証明書が効かない。
+# 参照先をOS側の信頼ストアへ揃える。
+ENV SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
+ENV REQUESTS_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+ENV NODE_EXTRA_CA_CERTS="/usr/local/share/ca-certificates/SECOM_TLS_RSA_Root_CA_2024_cross.crt"
 
 # ビルド時点の構成を記録する。必ず全ての導入処理の後に実行すること。
 RUN chmod +x /usr/local/bin/devenviron-manifest \
