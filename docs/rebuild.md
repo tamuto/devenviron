@@ -15,6 +15,67 @@ x86系だけをCI化するとビルド経路が二系統に分かれて管理が
 ./scripts/build_py3_13.sh <image-tag>
 ```
 
+## 環境別の設定
+
+ベースイメージやアーキテクチャ以外にも、ターゲットごとに変えたい設定がある。
+これらは`Dockerfile.tmpl`に`ARG`として口を用意し、
+ビルドスクリプト側から`--build-arg`で渡す。
+
+テンプレートの`{{...}}`置換とは使い分ける。
+置換は「Dockerfileの記述そのものが変わるもの」（ベースイメージ名・アーキテクチャ）に使い、
+`ARG`は「値だけが変わるもの」に使う。値のためにsedを増やすと、
+未指定のターゲットで空文字が埋め込まれる事故が起きる。
+
+### pipインデックス（`DENV_PIP_INDEX_URL`）
+
+Jetson向けのイメージでは、Jetson用にビルドされたwheelを取得するため
+[jetson-ai-lab](https://pypi.jetson-ai-lab.io/)のインデックスを指定する。
+
+```sh
+# scripts/build_torch_2.7-r36.4.0-cu128-24.04.sh
+DENV_PIP_INDEX_URL="https://pypi.jetson-ai-lab.io/jp6/cu128"
+```
+
+未指定ならPyPIを使う。x86向けのスクリプトでは空にしてある。
+
+このインデックスはdevpiで動いており**PyPIをミラーしている**。
+このためJetson固有のwheelも通常のパッケージも同じインデックスから取得できる。
+`PIP_EXTRA_INDEX_URL`ではなく`PIP_INDEX_URL`で足りるのはこのためである。
+
+インデックスは`jp6/cu126`と`jp6/cu128`が存在する（`cu122`は無い）。
+**実機のCUDAバージョンと一致するものを指定すること。**
+一致しないwheelを掴むと実行時に初めて問題が出る。
+
+指定した値は`ENV`としてイメージに残るため、コンテナ内での`pip install`にも効く。
+ビルドマニフェストの`pip index`にも記録される。
+
+### パッケージマネージャごとの対応状況
+
+**`uv`は`PIP_INDEX_URL`を読まない。** uvが見るのは`UV_DEFAULT_INDEX`
+（旧`UV_INDEX_URL`）である。このため同じ値を両方へ設定して揃えている。
+
+```dockerfile
+ENV PIP_INDEX_URL="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
+ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
+```
+
+未指定時の`https://pypi.org/simple`はpipとuvの既定値そのものであるため、
+指定しない場合の挙動は変わらない。
+
+**`poetry`は対象外である。** イメージ側から参照先PyPIを差し替える手段が無い。
+Poetry 1.x にあった`POETRY_PYPI_MIRROR_URL`は2.x で廃止されており、
+2.x に残る`POETRY_REPOSITORIES_<NAME>_URL`は**公開（publish）先**の指定であって
+取得元ではない。`PyPiRepository`の参照先URLは実装内で固定されている。
+
+Poetryで別のインデックスを使う場合はプロジェクト側で指定する。
+
+```bash
+poetry source add --priority=primary jetson https://pypi.jetson-ai-lab.io/jp6/cu128
+```
+
+これは`pyproject.toml`に`[[tool.poetry.source]]`として記録されるため、
+そのプロジェクトを扱う全員に効く。イメージ側で面倒を見るより筋がよい。
+
 ## イメージの系統
 
 現在2系統を併走させている。バージョン体系が異なるため取り違えないこと。
@@ -23,6 +84,28 @@ x86系だけをCI化するとビルド経路が二系統に分かれて管理が
 
 `envs/`配下の各環境（devcontainer / denv-cc-remote）は、
 このベースイメージを継承して各利用者の手元でビルドする。公開はしない。
+
+### 公開するのはx86向けのみ
+
+**Docker Hubへ公開するのは`linux/amd64`のイメージだけである。**
+Jetson(L4T)向けは実機でのビルドが前提のため、レジストリには置かない。
+
+このため**Jetson上で作業する場合は、まずベースイメージを実機でビルドする**必要がある。
+ビルドスクリプトは`docker.io/tamuto/devenviron:<tag>`のタグを付けるため、
+実機のローカルイメージがレジストリのタグを覆う形になる。
+
+```bash
+./scripts/build_torch_2.7-r36.4.0-cu128-24.04.sh <image-tag>
+```
+
+ローカルに該当タグが無い状態で`envs/`配下をビルドすると、
+`FROM tamuto/devenviron:<tag>`がレジストリのamd64イメージを取得してしまう。
+Jetson上ではエミュレーション実行になり、原因の分かりにくい失敗につながる。
+迷ったらアーキテクチャを確認する。
+
+```bash
+docker image inspect tamuto/devenviron:<tag> --format '{{.Architecture}}'
+```
 
 この結果、**バージョン番号を持つのはベースイメージだけ**になる。
 派生イメージ側にも番号を振ると、

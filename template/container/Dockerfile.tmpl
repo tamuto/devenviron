@@ -11,6 +11,23 @@ ENV DENV_BASEIMG="{{BASEIMG}}"
 # コンテナ内で対話的にapt-getを使ったときに挙動が変わってしまう。
 ARG DEBIAN_FRONTEND=noninteractive
 
+# 環境別に切り替えるpipのインデックス。指定はビルドスクリプト側で行う。
+# Jetson向けにはjetson-ai-lab(devpi)を指定する。
+# このインデックスはPyPIをミラーしているため、
+# Jetson固有のwheelも通常のパッケージも同じインデックスから取得できる。
+# 未指定ならPyPIを使う。
+#
+# uvはPIP_INDEX_URLを読まないため、同じ値をUV_DEFAULT_INDEXにも設定して揃える。
+# 未指定時の https://pypi.org/simple は pip と uv の既定値そのものであり、
+# 指定しない場合の挙動は変わらない。
+#
+# poetryは対象外である。2.x で POETRY_PYPI_MIRROR_URL が廃止され、
+# 参照先PyPIをイメージ側から差し替える手段が無くなったため。
+# プロジェクト単位での指定方法は docs/rebuild.md を参照。
+ARG DENV_PIP_INDEX_URL=""
+ENV PIP_INDEX_URL="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
+ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
+
 # lsb-release は次の層の lsb_release で使う。
 # software-properties-common の依存で入ってはいるが、暗黙依存にはしない。
 # apt lists はこの層で消しておく。後段で消してもこの層には残ってしまうため。

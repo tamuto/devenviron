@@ -26,7 +26,11 @@ ENV PATH="/root/.local/bin:${PATH}"
 #
 # serena init は設定の初期化。ビルド時に済ませておくことで、
 # 実行時に初期化が走らないようにする。
-RUN uv tool install -p 3.13 serena-agent \
+# pythonのバージョンは指定しない。
+# serena-agent の要件は >=3.11 であり、ベースイメージのpythonがこれを満たすため、
+# uvが管理するCPythonを別途ダウンロードする必要がない。
+# (満たさないベースイメージの場合はuvが自動で取得するので、指定しなくても成立する)
+RUN uv tool install serena-agent \
 &&  serena init < /dev/null
 
 # MCP サーバの登録はイメージ側では行わない。
