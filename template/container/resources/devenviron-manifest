@@ -55,6 +55,8 @@ _ver "volta"                 volta --version
 _ver "terraform"             terraform version
 _ver "aws"                   aws --version
 _ver "session-manager-plugin" session-manager-plugin --version
+_ver "docker"                docker --version
+_ver "docker compose"        docker compose version
 _ver "git"                   git --version
 _ver "git-lfs"               git-lfs --version
 _ver "svn"                   svn --version
