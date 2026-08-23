@@ -3,7 +3,7 @@
 # ベースイメージのバージョンは envs/devcontainer/Dockerfile と一致させること。
 # VSCode 側と同じ devenviron を土台にすることで、
 # どちらから作業しても同じ環境になることを担保している。
-FROM tamuto/devenviron:2026.08.1
+FROM tamuto/devenviron:2026.08.2
 
 # Claude Code はネイティブインストーラで導入する。
 # npm 版は 2026-01 (v2.1.15) に非推奨となっており、

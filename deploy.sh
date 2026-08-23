@@ -58,3 +58,8 @@ fi
 
 docker push "$image"
 echo "pushed $image"
+
+# 配布するバージョンを更新する。
+# push した時点が「このタグを配布する」と決めた瞬間であるため、ここで揃える。
+# 手作業にしていると更新漏れが起きる（実際に 2026.08.2 で発生した）。
+./scripts/bump_envs.sh "$tag"
