@@ -317,6 +317,43 @@ docker compose exec myproject cat /etc/devenviron/manifest.txt
 
 ## トラブルシューティング
 
+### ビルド中に `Temporary failure in name resolution`
+
+```
+error: Failed to fetch: `https://.../serena-agent/`
+  Caused by: dns error: failed to lookup address information: Temporary failure in name resolution
+```
+
+ビルド中のコンテナから名前解決ができていない。
+取得先のホストの問題ではなく、docker の bridge ネットワーク側で
+DNS が引けていない状態である（NXDOMAIN ではなく resolver への到達失敗）。
+**Jetson で発生する。** ベースイメージ側のJetson向けビルドスクリプトが
+`--network host` を付けているのも同じ理由である。
+
+まず切り分ける。前者だけ失敗するなら bridge の DNS の問題である。
+
+```bash
+docker run --rm <ベースイメージ> getent hosts pypi.org
+docker run --rm --network host <ベースイメージ> getent hosts pypi.org
+```
+
+該当する場合は、ビルド時のネットワークに host を指定する。
+`compose.base.yaml` の `build.network` を環境変数で切り替えられるようにしてある。
+
+```bash
+DENV_BUILD_NETWORK=host docker compose build
+```
+
+毎回指定するのが面倒であれば、`.env` に書いておく。
+`.env` はリポジトリでは管理しない。
+
+```
+DENV_BUILD_NETWORK=host
+```
+
+なお、この設定が効くのは**ビルド中**だけである。
+起動後のコンテナのネットワークには影響しない。
+
 ### `exec: "claude": executable file not found in $PATH`
 
 イメージを作り直した後にこのエラーで起動しなくなる場合、
