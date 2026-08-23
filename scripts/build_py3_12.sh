@@ -14,7 +14,8 @@ cat template/container/Dockerfile.tmpl | sed \
 -e "s|{{ARCH}}|x86_64|" \
 -e "s|{{SSM_ARCH}}|ubuntu_64bit|" > build/Dockerfile
 
-cp template/container/resources/* build/resources/
+# certs/ のようなサブディレクトリを含むため -r が要る。
+cp -r template/container/resources/* build/resources/
 docker build \
     --build-arg DENV_VERSION="$1" \
     --build-arg DENV_REVISION="$DENV_REVISION" \
