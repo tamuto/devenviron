@@ -20,5 +20,5 @@ wget -P .devcontainer --header='Accept: application/vnd.github.raw' https://api.
 
 wget -P /usr/local/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/shell/denvdb8
 wget -P /usr/local/bin --header='Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/template/shell/denvtime
-ln -s /usr/local/bin/denvdb8 /usr/local/bin/denvdb
+ln -sf /usr/local/bin/denvdb8 /usr/local/bin/denvdb
 chmod +x /usr/local/bin/denv*

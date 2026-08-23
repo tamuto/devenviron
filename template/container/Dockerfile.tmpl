@@ -6,26 +6,42 @@ ARG DENV_REVISION=unknown
 ARG DENV_CREATED=unknown
 ENV DENV_BASEIMG="{{BASEIMG}}"
 
+# 対話プロンプトでビルドが止まらないようにする。
+# ARGにしているのはビルド時のみ有効にするため。ENVだと実行時にも残り、
+# コンテナ内で対話的にapt-getを使ったときに挙動が変わってしまう。
+ARG DEBIAN_FRONTEND=noninteractive
+
+# lsb-release は次の層の lsb_release で使う。
+# software-properties-common の依存で入ってはいるが、暗黙依存にはしない。
+# apt lists はこの層で消しておく。後段で消してもこの層には残ってしまうため。
 RUN apt-get update && apt-get install -y \
     curl build-essential git git-lfs sqlite3 \
     software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
-    default-mysql-client subversion ffmpeg sox jq zip gettext-base
+    default-mysql-client subversion ffmpeg sox jq zip gettext-base lsb-release \
+&&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null \
 &&  gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint \
 &&  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list \
-&&  apt-get update && apt-get install terraform \
+&&  apt-get update && apt-get install -y terraform \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/* \
-&&  curl "https://awscli.amazonaws.com/awscli-exe-linux-{{ARCH}}.zip" -o "awscliv2.zip" \
+&&  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-{{ARCH}}.zip" -o "awscliv2.zip" \
 &&  7z x awscliv2.zip \
 &&  ./aws/install \
 &&  rm -rf ./aws \
 &&  rm awscliv2.zip
 
-RUN curl https://get.volta.sh | bash \
+RUN curl -fsSL https://get.volta.sh | bash \
 &&  /root/.volta/bin/volta install node pnpm
 
-RUN pip install \
+# Ubuntu 24.04系のベースイメージはPEP 668によりpip installが拒否されるため
+# --break-system-packagesが要る。ただし古いpipはこのオプションを持たないので、
+# 対応している場合のみ付与する。
+RUN pip_opts="--no-cache-dir"; \
+    if pip install --help 2>/dev/null | grep -q -- --break-system-packages; then \
+        pip_opts="$pip_opts --break-system-packages"; \
+    fi \
+&&  pip install $pip_opts \
     poetry \
     boto \
     boto3 \
@@ -35,7 +51,7 @@ RUN pip install \
     taskipy \
     uv
 
-RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
+RUN curl -fsSL "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
 
@@ -61,5 +77,7 @@ LABEL org.opencontainers.image.title="devenviron" \
       org.opencontainers.image.created="${DENV_CREATED}" \
       org.opencontainers.image.base.name="{{BASEIMG}}"
 
-ENTRYPOINT [""]
+# ベースイメージのENTRYPOINTを解除する。
+# [""]は空文字のENTRYPOINTを設定してしまうため、リセットには[]を使う。
+ENTRYPOINT []
 CMD ["/bin/bash"]

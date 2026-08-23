@@ -8,4 +8,5 @@ RUN  curl -LsSf https://astral.sh/uv/install.sh | sh \
 &&   uv python pin 3.12
 
 ENTRYPOINT ["/root/.local/bin/uvx"]
-CMD [""]
+# 既定の引数は持たせない。[""]だと`uvx ""`として起動してエラーになる。
+CMD []
