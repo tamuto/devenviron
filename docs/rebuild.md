@@ -22,9 +22,14 @@ x86系だけをCI化するとビルド経路が二系統に分かれて管理が
 ビルドスクリプト側から`--build-arg`で渡す。
 
 テンプレートの`{{...}}`置換とは使い分ける。
-置換は「Dockerfileの記述そのものが変わるもの」（ベースイメージ名・アーキテクチャ）に使い、
+置換は「Dockerfileの記述そのものが変わるもの」に使い、
 `ARG`は「値だけが変わるもの」に使う。値のためにsedを増やすと、
 未指定のターゲットで空文字が埋め込まれる事故が起きる。
+
+現在、置換しているのは`{{BASEIMG}}`だけである。
+アーキテクチャ依存の取得物（AWS CLI・session-manager-plugin）は
+`uname -m`と`dpkg --print-architecture`からビルド時に解決するため、
+スクリプト側で指定する必要がない。
 
 ### pipインデックス（`DENV_PIP_INDEX_URL`）
 
@@ -89,23 +94,34 @@ poetry source add --priority=primary jetson https://pypi.jetson-ai-lab.io/jp6/cu
 
 **Docker Hubへ公開するのは`linux/amd64`のイメージだけである。**
 Jetson(L4T)向けは実機でのビルドが前提のため、レジストリには置かない。
+Jetsonで作るイメージには**公開タグとは別のタグ名を付けて**運用し、
+どちらの系統か取り違えないようにしている。
 
-このため**Jetson上で作業する場合は、まずベースイメージを実機でビルドする**必要がある。
-ビルドスクリプトは`docker.io/tamuto/devenviron:<tag>`のタグを付けるため、
-実機のローカルイメージがレジストリのタグを覆う形になる。
+aarch64を公開しないのは、混乱を避けるためである。
+Jetson向けイメージは、アーキテクチャが同じであっても汎用のaarch64とは中身が別物になる。
+ベースイメージ自体がCUDAやPyTorchなどJetson固有のものを含んでおり、
+同じタグ体系に載せると「aarch64版」が何を指すのか読み取れなくなる。
 
-```bash
-./scripts/build_torch_2.7-r36.4.0-cu128-24.04.sh <image-tag>
-```
-
-ローカルに該当タグが無い状態で`envs/`配下をビルドすると、
-`FROM tamuto/devenviron:<tag>`がレジストリのamd64イメージを取得してしまう。
-Jetson上ではエミュレーション実行になり、原因の分かりにくい失敗につながる。
-迷ったらアーキテクチャを確認する。
+Jetson上で`envs/`配下をビルドする際は、`FROM`が実機でビルドしたタグを
+指しているかを確認すること。公開タグを指していると、
+レジストリのamd64イメージを取得してエミュレーション実行になり、
+原因の分かりにくい失敗につながる。
 
 ```bash
 docker image inspect tamuto/devenviron:<tag> --format '{{.Architecture}}'
 ```
+
+### 汎用aarch64（AWS Graviton等）
+
+**Jetson向けのスクリプトは使わない。** ベースイメージが別物であるため。
+`build_py3_12.sh` / `build_py3_13.sh`を、そのままaarch64の実機で実行する。
+
+`python:3.1x-slim-bookworm`はマルチアーキのイメージであり、
+`FROM`はビルドするホストのアーキテクチャへ自動で解決される。
+アーキテクチャ依存の取得物もビルド時に解決するため、スクリプトの変更は要らない。
+
+AWS CLI・session-manager-plugin・terraform・docker CLIは
+いずれもarm64向けの配布物が提供されていることを確認済みである。
 
 この結果、**バージョン番号を持つのはベースイメージだけ**になる。
 派生イメージ側にも番号を振ると、

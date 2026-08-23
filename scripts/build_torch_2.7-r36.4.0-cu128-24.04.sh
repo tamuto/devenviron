@@ -13,10 +13,9 @@ DENV_PIP_INDEX_URL="https://pypi.jetson-ai-lab.io/jp6/cu128"
 # 残しておくとresourcesへの追記が重複するなどの事故になる。
 rm -rf build
 mkdir -p build/resources
-cat template/container/Dockerfile.tmpl | sed \
--e "s|{{BASEIMG}}|dustynv/pytorch:2.7-r36.4.0-cu128-24.04|" \
--e "s|{{ARCH}}|aarch64|" \
--e "s|{{SSM_ARCH}}|ubuntu_arm64|" > build/Dockerfile
+# アーキテクチャ依存の取得物はDockerfile側でビルド時に解決するため、
+# ここで置き換えるのはベースイメージだけでよい。
+sed -e "s|{{BASEIMG}}|dustynv/pytorch:2.7-r36.4.0-cu128-24.04|" template/container/Dockerfile.tmpl > build/Dockerfile
 
 # certs/ のようなサブディレクトリを含むため -r が要る。
 cp -r template/container/resources/* build/resources/
