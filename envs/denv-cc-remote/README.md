@@ -41,18 +41,29 @@ export WORKSPACES_ROOT=/root/workspaces
 ### 2. 設定の置き場所をホスト側に用意する
 
 Claude Code の設定と認証情報はホスト側へ保存する。
-**bind mount するファイルが存在しないと Docker がディレクトリを作ってしまう**ため、
-先に実体を作っておくこと。
+**bind mount のソースが存在しないと Docker がディレクトリとして作ってしまう**ため、
+先に正しい型で実体を作っておくこと。
 
 ```bash
-mkdir -p $WORKSPACES_ROOT/.devcontainer/denv/.claude
-[ -s $WORKSPACES_ROOT/.devcontainer/denv/.claude.json ] \
-  || echo '{}' > $WORKSPACES_ROOT/.devcontainer/denv/.claude.json
+denv=$WORKSPACES_ROOT/.devcontainer/denv
+
+mkdir -p $denv/.claude $denv/.ssh $denv/.aws $denv/.config
+touch $denv/.gitconfig $denv/.git-credentials $denv/.npmrc
+[ -s $denv/.claude.json ] || echo '{}' > $denv/.claude.json
 ```
 
 `.claude.json` は空ファイルだと JSON として不正になるため `{}` で初期化する。
 
-devenviron の `setup.sh` を実行済みであれば、この2つは作成されている。
+`.ssh` `.aws` `.gitconfig` `.git-credentials` `.npmrc` `.config` は
+devcontainer 側と同じものを共有する。
+**両者のマウント一覧は必ず揃えること。**
+どちらから作業しても同じ環境になることを担保している以上、
+参照する設定が環境によって変わるのは筋が通らない。
+
+devenviron の `setup.sh` を実行済みであれば、これらは作成されている。
+**逆に、この環境だけをセットアップした場合は用意されない。**
+新規のマシンで cc-remote だけを立てる場合は必ず実施すること
+（構造的な整理は TODO.md の 4.7 で扱う）。
 
 ### 3. プロジェクトのサービスを定義する
 
@@ -316,6 +327,42 @@ docker compose exec myproject cat /etc/devenviron/manifest.txt
 ```
 
 ## トラブルシューティング
+
+### 起動時に `not a directory` / `Are you trying to mount a directory onto a file`
+
+```
+error mounting ".../.devcontainer/denv/.claude.json" to rootfs at "/root/.claude.json":
+create mountpoint for /root/.claude.json mount: cannot create subdirectories in
+".../merged/root/.claude.json": not a directory
+```
+
+bind mount のソースとマウント先で型が食い違っている。
+ホスト側の `.claude.json` が**ディレクトリ**になっているのが原因である。
+
+実体を用意する前にコンテナを起動すると、Docker はソースを
+**ディレクトリとして**作る。一方イメージ側の `/root/.claude.json` は
+ファイルであり（claude のインストーラがビルド時に生成する）、
+そこへディレクトリを被せられないため起動に失敗する。
+
+```bash
+denv=$WORKSPACES_ROOT/.devcontainer/denv
+ls -la $denv      # ファイルであるべきものが d で始まっていないか
+
+for f in .claude.json .gitconfig .git-credentials .npmrc; do
+  [ -d "$denv/$f" ] && rmdir "$denv/$f" && echo "removed dir: $f"
+done
+
+mkdir -p $denv/.claude $denv/.ssh $denv/.aws $denv/.config
+touch $denv/.gitconfig $denv/.git-credentials $denv/.npmrc
+[ -s $denv/.claude.json ] || echo '{}' > $denv/.claude.json
+```
+
+`rmdir` は中身があると失敗する。失敗した場合は
+Docker が作った空ディレクトリではないため、中身を確認してから判断すること。
+
+**`.gitconfig` / `.git-credentials` / `.npmrc` も併せて確認すること。**
+これらはイメージ側に実体が無いためディレクトリのままでもマウントが通ってしまい、
+git が認証情報を読めないという形で後から表面化する。
 
 ### ビルド中に `Temporary failure in name resolution`
 

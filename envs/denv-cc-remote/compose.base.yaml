@@ -66,11 +66,18 @@ services:
       # こちらはバージョン名を含むパスを参照しないため上記の問題は起きないが、
       # イメージを作り直してもボリューム側が優先される点は同じである。
       - serena-data:/root/.serena
-      # 開発で利用する認証情報。devcontainer 側と同じものを共有する。
+      # 開発で利用する認証情報と設定。devcontainer 側と同じものを共有する。
+      # **devcontainer.json の mounts と同じ一覧に揃えること。**
+      # どちらから作業しても同じ環境になることを担保している以上、
+      # 参照する設定が環境によって変わるのは筋が通らない。
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.gitconfig:/root/.gitconfig
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.git-credentials:/root/.git-credentials
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.npmrc:/root/.npmrc
+      # uv / poetry / git などの設定が入る。イメージ側に /root/.config は無いため、
+      # このマウントで隠れるものはない。
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.config:/root/.config
       # コンテナ内から docker コマンドを使うためのホストのソケット。
       # 導入しているのは docker CLI だけで、デーモンはホスト側のものを操作する。
       # ここから起動したコンテナはホスト上の兄弟コンテナになる。
