@@ -35,6 +35,8 @@ printf '%-24s %s\n' "revision"   "${DENV_REVISION:-unknown}"
 printf '%-24s %s\n' "base image" "${DENV_BASEIMG:-unknown}"
 printf '%-24s %s\n' "created"    "${DENV_CREATED:-unknown}"
 printf '%-24s %s\n' "platform"   "$(uname -m)"
+printf '%-24s %s\n' "pip index"  "${PIP_INDEX_URL:-(default)}"
+printf '%-24s %s\n' "uv index"   "${UV_DEFAULT_INDEX:-(default)}"
 
 _section "OS"
 if [ -r /etc/os-release ]; then

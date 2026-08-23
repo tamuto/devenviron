@@ -555,7 +555,12 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     - `scripts/build_l4t_torch_r35.2.1.sh` / `r35.4.1.sh` / `build_ros_humble_torch_r35.3.1.sh` … JetPack 5 系。実機なし
     - `scripts/build_llama_gguf_r36.2.0.sh` … 用途が限定的で利用実績なし
   - 残したもの: `build_py3_12.sh` / `build_py3_13.sh` /
-    `build_l4t_torch_r36.2.0.sh` / `build_allbase_r36.3.0.sh` / `build_torch_2.7-r36.4.0-cu128-24.04.sh`
+    `build_allbase_r36.3.0.sh` / `build_torch_2.7-r36.4.0-cu128-24.04.sh`
+  - 追加で削除: `scripts/build_l4t_torch_r36.2.0.sh`
+    ベースの`dustynv/l4t-pytorch:r36.2.0`はPython 3.10であり、
+    serenaをはじめ3.11以上を要求するツールが動かない。
+    またJetson向けpipインデックスもCUDA 12.2に対応するものが提供されていない。
+    Jetson系は`build_allbase_r36.3.0.sh`と`build_torch_2.7-*.sh`に集約する。
 
 - [x] **9.5 `CLAUDE.md` を削除**
   - 当初は「方針と禁止事項のみを残す」形に削ぎ落としたが、その後 3.1 / 3.2 の決定を
