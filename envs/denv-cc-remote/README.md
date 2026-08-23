@@ -47,12 +47,18 @@ Claude Code の設定と認証情報はホスト側へ保存する。
 ```bash
 denv=$WORKSPACES_ROOT/.devcontainer/denv
 
-mkdir -p $denv/.claude $denv/.ssh $denv/.aws
-touch $denv/.gitconfig $denv/.git-credentials
+mkdir -p $denv/.claude $denv/.ssh $denv/.aws $denv/.config
+touch $denv/.gitconfig $denv/.git-credentials $denv/.npmrc
 [ -s $denv/.claude.json ] || echo '{}' > $denv/.claude.json
 ```
 
 `.claude.json` は空ファイルだと JSON として不正になるため `{}` で初期化する。
+
+`.ssh` `.aws` `.gitconfig` `.git-credentials` `.npmrc` `.config` は
+devcontainer 側と同じものを共有する。
+**両者のマウント一覧は必ず揃えること。**
+どちらから作業しても同じ環境になることを担保している以上、
+参照する設定が環境によって変わるのは筋が通らない。
 
 devenviron の `setup.sh` を実行済みであれば、これらは作成されている。
 **逆に、この環境だけをセットアップした場合は用意されない。**
@@ -342,19 +348,19 @@ bind mount のソースとマウント先で型が食い違っている。
 denv=$WORKSPACES_ROOT/.devcontainer/denv
 ls -la $denv      # ファイルであるべきものが d で始まっていないか
 
-for f in .claude.json .gitconfig .git-credentials; do
+for f in .claude.json .gitconfig .git-credentials .npmrc; do
   [ -d "$denv/$f" ] && rmdir "$denv/$f" && echo "removed dir: $f"
 done
 
-mkdir -p $denv/.claude $denv/.ssh $denv/.aws
-touch $denv/.gitconfig $denv/.git-credentials
+mkdir -p $denv/.claude $denv/.ssh $denv/.aws $denv/.config
+touch $denv/.gitconfig $denv/.git-credentials $denv/.npmrc
 [ -s $denv/.claude.json ] || echo '{}' > $denv/.claude.json
 ```
 
 `rmdir` は中身があると失敗する。失敗した場合は
 Docker が作った空ディレクトリではないため、中身を確認してから判断すること。
 
-**`.gitconfig` と `.git-credentials` も併せて確認すること。**
+**`.gitconfig` / `.git-credentials` / `.npmrc` も併せて確認すること。**
 これらはイメージ側に実体が無いためディレクトリのままでもマウントが通ってしまい、
 git が認証情報を読めないという形で後から表面化する。
 
