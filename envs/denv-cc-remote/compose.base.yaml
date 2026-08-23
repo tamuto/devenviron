@@ -19,6 +19,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # ビルド中のRUNが使うネットワーク。既定は default (bridge)。
+      #
+      # Jetson では docker の bridge ネットワークで名前解決に失敗することがあり、
+      # ビルド中のダウンロードが
+      #   dns error: ... Temporary failure in name resolution
+      # で止まる。ベースイメージ側のJetson向けビルドスクリプトが
+      # --network host を付けているのも同じ理由である。
+      #
+      # 該当する環境では .env などで host を指定する。
+      #   DENV_BUILD_NETWORK=host
+      network: ${DENV_BUILD_NETWORK:-default}
     stdin_open: true
     tty: true
     # モバイルや claude.ai に表示されるデバイス名になる。
