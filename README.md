@@ -30,6 +30,11 @@
 - devenvironが用意する独自コマンドが存在する。
 - [こちら](./docs/commands.md)を参照。
 
+## コンテナ内からのdocker利用
+
+- コンテナ内で`docker`コマンドが使える。ホスト側のデーモンを操作する形になる。
+- パスがホスト基準で解釈されるなどの注意点があるため、[こちら](./docs/docker.md)を参照。
+
 ## イメージのビルド
 
 - 適切なイメージが存在しない場合は、自分でビルドする必要がある。
@@ -55,6 +60,7 @@
   * poetry
   * uv
 * その他
+  * docker CLI (docker compose / buildx)
   * awscli (with session-manager-plugin)
   * twine
   * python-dotenv

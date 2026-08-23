@@ -234,6 +234,17 @@ Amazon Bedrock / Google Cloud's Agent Platform / Microsoft Foundry 経由でも�
 remote-control は claude.ai への外向き接続で成立する。
 コンテナ側で待ち受けるポートはないため、ポートの公開設定は不要。
 
+### コンテナ内からの docker 利用
+
+ベースイメージに docker CLI が入っており、
+`compose.base.yaml` でホストの `/var/run/docker.sock` をマウントしている。
+コンテナ内から `docker` / `docker compose` をそのまま使えるが、
+起動するのはホスト上の兄弟コンテナであり、
+`-v` のパスがホスト基準で解釈される点に注意する。
+`/workspaces` に対応するホスト側のパスは `DENV_HOST_WORKSPACES` で参照できる。
+
+詳細は [docs/docker.md](../../docs/docker.md) を参照。
+
 ### Serena MCP について
 
 ツール本体のみイメージに同梱している。

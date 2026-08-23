@@ -52,6 +52,15 @@ services:
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.gitconfig:/root/.gitconfig
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.git-credentials:/root/.git-credentials
+      # コンテナ内から docker コマンドを使うためのホストのソケット。
+      # 導入しているのは docker CLI だけで、デーモンはホスト側のものを操作する。
+      # ここから起動したコンテナはホスト上の兄弟コンテナになる。
+      # 詳細と注意点は docs/docker.md を参照。
+      - /var/run/docker.sock:/var/run/docker.sock
+    # ここから起動したコンテナはホスト側のネットワークに属するため、
+    # devcontainer 側と同様に host.docker.internal を引けるようにしておく。
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # remote-control は機能フラグの評価結果に依存するため、
       # 以下を設定すると利用できなくなる。設定しないこと。
@@ -59,3 +68,6 @@ services:
       #   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC / DISABLE_GROWTHBOOK
       # また ANTHROPIC_BASE_URL を api.anthropic.com 以外へ向けると利用できない。
       - TZ=${TZ:-Asia/Tokyo}
+      # コンテナ内から docker run する際の -v はホスト側のパスとして解釈される。
+      # /workspaces に対応するホスト側のパスを渡しておく。
+      - DENV_HOST_WORKSPACES=${WORKSPACES_ROOT:-/root/workspaces}

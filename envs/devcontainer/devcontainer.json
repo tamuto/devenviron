@@ -11,8 +11,16 @@
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.gitconfig,target=/root/.gitconfig,type=bind,consistency=cached",
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.git-credentials,target=/root/.git-credentials,type=bind,consistency=cached",
 		"source=${localWorkspaceFolder}/.devcontainer/denv/.npmrc,target=/root/.npmrc,type=bind,consistency=cached",
-		"source=${localWorkspaceFolder}/.devcontainer/denv/.config,target=/root/.config,type=bind,consistency=cached"
+		"source=${localWorkspaceFolder}/.devcontainer/denv/.config,target=/root/.config,type=bind,consistency=cached",
+		// コンテナ内からdockerコマンドを使うためのホストのソケット。
+		// 起動するコンテナはホスト上の兄弟コンテナになる。詳細はdocs/docker.mdを参照。
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
 	],
+	"containerEnv": {
+		// コンテナ内からdocker runする際の-vはホスト側のパスとして解釈される。
+		// /workspacesに対応するホスト側のパスをここで渡しておく。
+		"DENV_HOST_WORKSPACES": "${localWorkspaceFolder}"
+	},
 	"features": {
 	},
 	"customizations": {
