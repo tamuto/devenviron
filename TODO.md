@@ -375,6 +375,33 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     将来誤って `git init` された場合に秘密鍵と AWS クレデンシャルがコミット対象に入る。
   - `.devcontainer/denv/.gitignore` に `*` を 1 行書いたファイルを置くだけで防げる。コストがほぼゼロの保険。
 
+- [ ] **4.7 `setup.sh` をホスト側準備の単一実装にする**
+  - `envs/`配下が bind mount するホスト側の実体（`.devcontainer/denv/`）を作っているのは
+    `setup.sh` だけである。しかし `denv-cc-remote` は
+    「devcontainer を前提としない別系統」と位置づけているため、
+    **cc-remote だけをセットアップした環境では実体が用意されない。**
+  - bind mount のソースが存在しないと Docker はそれを**ディレクトリとして**作る。
+    その結果:
+    - `.claude.json` … イメージ側はファイル（claudeのインストーラが生成）のため型が衝突し、
+      `not a directory` で**起動できなくなる**。2026-08 に Jetson で実際に発生した。
+    - `.gitconfig` / `.git-credentials` … イメージ側に実体が無いためマウントは通ってしまい、
+      git が認証情報を読めないという形で後から表面化する。**こちらの方が質が悪い。**
+  - x86 で表面化しなかったのは、先に `setup.sh` を実行済みだったという順序の偶然にすぎない。
+    新規の EC2 / Windows / Jetson で cc-remote だけを立てれば同じことが起きる。
+  - 対応方針: **`setup.sh` の役割を「ホスト側の状態を用意する」に寄せる。**
+    cc-remote 側に同等のスクリプトを置くと実装が2つになり、今回のようなズレをまた生む。
+    cc-remote の手順は「先に `setup.sh` を実行すること」を前提にする。
+  - 必要な差分:
+    - ルートを引数か環境変数で指定できるようにする
+      （`setup.sh`はCWD基準、cc-remoteは`WORKSPACES_ROOT`基準で食い違っている）
+    - 型の食い違いを検出して停止する（作成せずに知らせる）
+    - 作成対象は両系統の和集合とする
+      … dir: `.claude` `.ssh` `.aws` `.config` /
+      file: `.claude.json` `.gitconfig` `.git-credentials` `.npmrc` `.aws/config` `.aws/credentials`
+  - **着手順は 8.1 の後がよい。** 起動定義を compose へ一本化すると
+    `setup.sh` の devcontainer 取得部分が薄くなるため、先に分割すると手戻りになる。
+  - 4.1（冪等化）4.5（パーミッション）と同じファイルを触るため、まとめて対応する。
+
 ---
 
 ## 5. セキュリティ
@@ -535,6 +562,26 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     `"containerEnv": {"TZ": "Asia/Tokyo"}` を追加する。
   - 拡張機能が `ms-python.flake8` だが、`uv` を導入済みなら `charliermarsh.ruff` へ寄せる方が
     現状のエコシステムと整合する。
+
+- [ ] **8.5 エディタ層を差し替え可能な薄い層にする**
+  - 現状 `devcontainer.json` が VSCode 専用の起動口かつマウント定義の実体になっている。
+    次のエディタ候補として Zed が挙がっており、
+    AI エージェント側は Claude Desktop 等へ寄せる想定であるため、
+    「環境の定義」と「エディタの接続方法」を分けておく必要がある。
+  - 8.1 の通り起動定義を compose へ一本化したうえで、
+    `devcontainer.json` は `dockerComposeFile` + `service` を指すだけの層にする。
+    これは devcontainer 仕様の標準機能であり、特別なことをしなくてよい。
+  - こうしておくと、Zed が devcontainer をどこまで解釈するかに関係なく、
+    SSH リモート接続でも素の `docker compose exec` でも同じコンテナに入れる。
+  - Zed の devcontainer 対応状況は着手時点で要確認。
+
+- [ ] **8.6 ホスト側の状態を `.devcontainer/` の下から出す**
+  - 認証情報と設定の実体を `.devcontainer/denv/` に置いているが、
+    これは VSCode 由来のディレクトリ名である。
+    エディタ非依存を目指すなら、共有状態がエディタ固有の名前の下にあるのは逆立ちしている。
+  - ただし全利用者のパスが変わるため、移行には
+    「新パスがあれば使い、無ければ旧パスにフォールバック」を一度挟む必要がある。
+  - **8.1 / 8.5 の後に行う。** 順序を誤ると移行の手間だけが増える。
 
 ---
 
