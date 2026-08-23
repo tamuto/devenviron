@@ -317,6 +317,29 @@ docker compose exec myproject cat /etc/devenviron/manifest.txt
 
 ## トラブルシューティング
 
+### `exec: "claude": executable file not found in $PATH`
+
+イメージを作り直した後にこのエラーで起動しなくなる場合、
+`/root/.local/share/claude` を名前付きボリュームで永続化していないか確認する。
+
+名前付きボリュームがイメージ側の内容で初期化されるのは、
+**そのボリュームを作った1回だけ**である。
+2回目以降はイメージ側が無視され、既存の中身が優先される。
+claude の実体は `versions/<バージョン>` で、
+`/root/.local/bin/claude` はそこへのシンボリックリンクであるため、
+イメージを作り直して claude のバージョンが上がると
+リンク先が古いボリュームの中に存在せず、このエラーになる。
+
+現在の `compose.base.yaml` はこのパスを永続化していない。
+以前の定義で作られたボリュームが残っている場合は削除してよい。
+自動更新で取得したバイナリのキャッシュであり、失っても再取得されるだけである。
+
+```bash
+docker compose down
+docker volume rm denv-cc-remote_claude-versions
+docker compose up -d
+```
+
 ### `Unable to determine your organization for Remote Control eligibility`
 
 ログインには成功しているのに remote-control が起動できない場合、
@@ -448,7 +471,6 @@ services:
 
 # extends では top-level の volumes は引き継がれないため、ここで宣言する
 volumes:
-  claude-versions:
   serena-data:
 ```
 

@@ -41,11 +41,19 @@ services:
       # 事前にホスト側へ実体を作っておくこと(README の準備手順を参照)。
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude:/root/.claude
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.claude.json:/root/.claude.json
-      # 自動更新で取得したバイナリの実体。
-      # 永続化しておくと起動のたびに更新をやり直さずに済む。
-      - claude-versions:/root/.local/share/claude
+      # /root/.local/share/claude は永続化しない。
+      # 名前付きボリュームの初期化はボリュームを作った1回だけで、
+      # 2回目以降はイメージ側の内容を無視して既存の中身が優先される。
+      # claude の実体は versions/<バージョン> であり
+      # /root/.local/bin/claude はそこへのシンボリックリンクなので、
+      # イメージを作り直すとリンク先がボリューム内に存在しなくなり
+      # "exec: claude: executable file not found in $PATH" で起動できなくなる。
+      # 自動更新の取得結果は失われるが、イメージ側のバージョンから再度更新されるだけである。
+      #
       # Serena の設定とプロジェクトのインデックス、および取得済みの language server。
       # 永続化しないとコンテナを作り直すたびに再取得・再インデックスになる。
+      # こちらはバージョン名を含むパスを参照しないため上記の問題は起きないが、
+      # イメージを作り直してもボリューム側が優先される点は同じである。
       - serena-data:/root/.serena
       # 開発で利用する認証情報。devcontainer 側と同じものを共有する。
       - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
