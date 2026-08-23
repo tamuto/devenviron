@@ -397,30 +397,30 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
 
 ## 6. Dockerfile / ビルドスクリプトの不具合
 
-- [ ] **6.1 `Dockerfile.tmpl:11` `apt-get install terraform` に `-y` がない**
+- [x] **6.1 `Dockerfile.tmpl:11` `apt-get install terraform` に `-y` がない**
   - terraform パッケージに追加依存がないため現状は偶然プロンプトが出ずに通っているが、
     依存が 1 つ増えた時点でビルドが `Abort.` で落ちる。
 
-- [ ] **6.2 `Dockerfile.tmpl:19` `curl https://get.volta.sh | bash` に `-f` がない**
+- [x] **6.2 `Dockerfile.tmpl:19` `curl https://get.volta.sh | bash` に `-f` がない**
   - HTTP エラー時にエラーページの HTML がそのまま bash に流し込まれる。`curl -fsSL` に統一する。
 
-- [ ] **6.3 apt lists と pip キャッシュがイメージに焼き込まれている**
+- [x] **6.3 apt lists と pip キャッシュがイメージに焼き込まれている**
   - 1 層目（`Dockerfile.tmpl:3-6`）で `apt-get update` した lists を削除しておらず、
     後段（12 行目）で消してもレイヤーには残る（数十 MB）。
   - `pip install` に `--no-cache-dir` がなく、pip キャッシュが丸ごと残る（boto3 等を含むと数百 MB 規模）。
   - どちらも 1 行の修正で効果が大きい。
 
-- [ ] **6.4 `lsb_release` への暗黙依存を明示する**
+- [x] **6.4 `lsb_release` への暗黙依存を明示する**
   - `Dockerfile.tmpl:10` で使用しているが明示インストールしておらず、
     `software-properties-common` の依存に乗っているだけ。apt リストに `lsb-release` を明記する。
 
-- [ ] **6.5 `ENTRYPOINT [""]` を `ENTRYPOINT []` に修正する**
+- [x] **6.5 `ENTRYPOINT [""]` を `ENTRYPOINT []` に修正する**
   - リセット目的なら `[]` が正しい記法。`[""]` は空文字のエントリポイントを設定してしまう。
 
-- [ ] **6.6 `etc/runtimes/pyuv/Dockerfile` の `CMD [""]`**
+- [x] **6.6 `etc/runtimes/pyuv/Dockerfile` の `CMD [""]`**
   - 空文字の引数を 1 つ渡すため `uvx ""` として起動しエラーになる。`CMD []` が意図のはず。
 
-- [ ] **6.7 Ubuntu 24.04 ベースで `pip install` が失敗する**
+- [x] **6.7 Ubuntu 24.04 ベースで `pip install` が失敗する**
   - `scripts/build_torch_2.7-r36.4.0-cu128-24.04.sh` は Ubuntu 24.04 ベースであり、
     PEP 668 により `pip install` が `externally-managed-environment` で拒否される。
   - `--break-system-packages` の付与、または venv 経由への切り替えが必要。
@@ -432,24 +432,41 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
   - `scripts/targets.tsv` にターゲット定義を並べ、`scripts/build.sh <target> <tag>` の 1 本に集約する。
   - ※ CI は採用しないため、あくまで**ローカル実行スクリプトの整理**として行う。
 
-- [ ] **6.9 ビルド前に `build/` を掃除する**
+- [x] **6.9 ビルド前に `build/` を掃除する**
   - `build/` を消さずに使い回すため、`build_ros_humble_torch_r35.3.1.sh` を 2 回実行すると
     `bash_aliases` に `source /opt/ros/...` が重複追記される。冒頭に `rm -rf build` を追加する。
 
-- [ ] **6.10 `sed` の区切り文字を変更する**
+- [x] **6.10 `sed` の区切り文字を変更する**
   - `s/{{BASEIMG}}/dustynv\/l4t-pytorch:r36.2.0/` のようにスラッシュをエスケープしているが、
     `s|...|...|` にすればエスケープ不要で読みやすくなる。
 
-- [ ] **6.11 `etc/runtimes/nodeoras/Dockerfile` の整理**
+- [x] **6.11 `etc/runtimes/nodeoras/Dockerfile` の整理**
   - apt lists の削除がない。
   - `rm README.md gcrane krane LICENSE` が `/` 直下での実行を前提にしている。
   - `amd64` / `x86_64` 決め打ちになっている。
+  - ※ arch 決め打ちは未対応。x86 向けのランタイムとして割り切っている。
+
+### 実装メモ（6章 完了分）
+
+- 修正の実体は `template/container/Dockerfile.tmpl` 側にある。
+  `build/Dockerfile` は生成物のため直接編集しない（.gitignore 済み）。
+- 6.1 / 6.2: `apt-get install -y terraform`、`curl -fsSL` へ統一。
+  あわせてビルド中に対話プロンプトで停止しないよう `ARG DEBIAN_FRONTEND=noninteractive` を追加。
+  ENV ではなく ARG にしているのは、実行時のコンテナ内 apt-get の挙動を変えないため。
+- 6.3: 1 層目の末尾で apt lists を削除。pip は `--no-cache-dir`。
+- 6.7: pip のオプションは固定せず、`--break-system-packages` を持つ pip の場合のみ付与する。
+  古いベースイメージ（l4t r36.2.0 等）の pip はこのオプションを知らないため、無条件には付けられない。
+- 6.5 / 6.6: `ENTRYPOINT []` / `CMD []` へ修正（`runtimes/` 配下も同様）。
+- 6.9 / 6.10: 各ビルドスクリプトの冒頭に `rm -rf build`、sed の区切りを `|` へ。
+- 6.11: nodeoras は必要なバイナリだけを tar から展開する形にし、
+  カレントディレクトリ前提の `rm` を廃止。apt lists の削除と volta の PATH 設定も追加。
+- 6.8（スクリプト統合）は未対応。ビルドの動作とは独立した整理のため別途行う。
 
 ---
 
 ## 7. 個別スクリプトの不具合
 
-- [ ] **7.1 `bash_aliases` のプロンプト定義が壊れている**
+- [x] **7.1 `bash_aliases` のプロンプト定義が壊れている**
   - `template/container/resources/bash_aliases:6` の PS1 で `\[` が二重になっている
     （`\[\[\033[01;34m\]`）。bash のプロンプト幅計算が狂い、
     長いコマンド入力時に行が折り返さない / カーソルがズレる原因になる。
@@ -458,6 +475,8 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     4 行目の git-prompt 側は `-e` でガードされているのに、こちらだけ素通しになっている。
   - ファイル名が `bash_aliases` なのに `/root/.bashrc` として COPY されており、
     ベースイメージの `.bashrc` を完全に上書きしている。実態に合った名前にする。
+  - ※ PS1 の `\[` 重複と bash-completion の無条件 source は修正済み。
+    ファイル名の変更は未対応（Dockerfile.tmpl の COPY と各ビルドスクリプトの cp を伴うため別途）。
 
 - [ ] **7.2 `denv_backup` / `denv_restore` が現在の構成と一致していない**
   - `denv_backup` は `~/.devenviron/` 配下の `.awsconfig` / `.aws-credentials` を tar するが、
@@ -482,7 +501,7 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
   - ※ これはビルドを伴わない静的チェックであり、0.2 の「CI でイメージをビルドしない」方針とは別枠。
     ローカル実行のみとするか CI に載せるかは別途判断する。
 
-- [ ] **7.5 `denvtime` のシェバンが `#/bin/bash`（`!` 抜け）**
+- [x] **7.5 `denvtime` のシェバンが `#/bin/bash`（`!` 抜け）**
   - 実質 sh で動いてしまうため気付きにくい。
 
 ---

@@ -5,11 +5,14 @@ set -eu
 DENV_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
 DENV_CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+# 前回のビルド成果物を持ち越さない。
+# 残しておくとresourcesへの追記が重複するなどの事故になる。
+rm -rf build
 mkdir -p build/resources
 cat template/container/Dockerfile.tmpl | sed \
--e "s/{{BASEIMG}}/dustynv\/pytorch:2.7-r36.4.0-cu128-24.04/" \
--e "s/{{ARCH}}/aarch64/" \
--e "s/{{SSM_ARCH}}/ubuntu_arm64/" > build/Dockerfile
+-e "s|{{BASEIMG}}|dustynv/pytorch:2.7-r36.4.0-cu128-24.04|" \
+-e "s|{{ARCH}}|aarch64|" \
+-e "s|{{SSM_ARCH}}|ubuntu_arm64|" > build/Dockerfile
 
 cp template/container/resources/* build/resources/
 docker build \

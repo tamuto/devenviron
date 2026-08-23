@@ -5,11 +5,14 @@ set -eu
 DENV_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
 DENV_CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+# 前回のビルド成果物を持ち越さない。
+# 残しておくとresourcesへの追記が重複するなどの事故になる。
+rm -rf build
 mkdir -p build/resources
 cat template/container/Dockerfile.tmpl | sed \
--e "s/{{BASEIMG}}/python:3.13-slim-bookworm/" \
--e "s/{{ARCH}}/x86_64/" \
--e "s/{{SSM_ARCH}}/ubuntu_64bit/" > build/Dockerfile
+-e "s|{{BASEIMG}}|python:3.13-slim-bookworm|" \
+-e "s|{{ARCH}}|x86_64|" \
+-e "s|{{SSM_ARCH}}|ubuntu_64bit|" > build/Dockerfile
 
 cp template/container/resources/* build/resources/
 docker build \

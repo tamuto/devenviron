@@ -8,5 +8,6 @@ RUN  npm install -g @anthropic-ai/claude-code
 RUN  mkdir /workspaces
 WORKDIR /workspaces
 
-ENTRYPOINT [""]
+# ベースイメージのENTRYPOINTを解除する。[""]は空文字のENTRYPOINTを設定してしまう。
+ENTRYPOINT []
 CMD ["claude", "mcp", "serve"]
