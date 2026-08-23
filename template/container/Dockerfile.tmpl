@@ -55,7 +55,7 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr
 &&  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list \
 &&  apt-get update && apt-get install -y terraform \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/* \
-&&  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-{{ARCH}}.zip" -o "awscliv2.zip" \
+&&  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" \
 &&  7z x awscliv2.zip \
 &&  ./aws/install \
 &&  rm -rf ./aws \
@@ -100,7 +100,14 @@ RUN pip_opts="--no-cache-dir"; \
     taskipy \
     uv
 
-RUN curl -fsSL "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/{{SSM_ARCH}}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
+# session-manager-pluginの配布パスはAWS独自の名前になっているため対応表が要る。
+# AWS CLI側は uname -m (x86_64 / aarch64) がそのまま使える。
+RUN case "$(dpkg --print-architecture)" in \
+        amd64) ssm_arch=ubuntu_64bit ;; \
+        arm64) ssm_arch=ubuntu_arm64 ;; \
+        *) echo "unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac \
+&&  curl -fsSL "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/${ssm_arch}/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
 
