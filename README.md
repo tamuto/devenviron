@@ -1,29 +1,68 @@
 # DevEnviron
 
-- 共通した開発環境を提供するためのプロジェクト
-- devcontainerを利用してVSCodeへの開発環境の提供を想定している
+共通した開発環境をコンテナで提供するためのプロジェクト。
+メンバー間で同じ構成の環境を再現できることを目的としている。
 
-## セットアップ
+土台となるベースイメージ`tamuto/devenviron`を1つ用意し、
+その上に利用形態ごとの環境を重ねる構成になっている。
+
+## 前提
 
 - dockerが利用できる環境が必要。
 - Docker for Desktopなども利用可能ではあるがディスクI/Oが遅いため、できればWSL2+Ubuntuを利用することを推奨する。
 - Windowsの場合は、[WSL2+Ubuntu](./docs/setup_windows.md)を参照。
 - Macは検証環境がないため現在サポートしていない。
 
+## セットアップ
+
+開発用フォルダを作り、その中でセットアップスクリプトを実行する。
+
+```sh
+cd ~/workspaces
+curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto/devenviron/contents/setup.sh | sh
+```
+
+以下が用意される。
+
+- `.devcontainer/` … devcontainerの定義（`devcontainer.json`と`Dockerfile`）
+- `.devcontainer/denv/` … 認証情報と設定の置き場所（後述）
+- ホスト側の独自コマンド（`denvdb` / `denvtime`）
+
+以降の起動手順は利用環境ごとに異なる。
+
 ## 利用環境
 
 `envs/`配下に、devenvironをベースとした利用環境の定義を置いている。
 いずれも同じdevenvironを土台とするため、どちらから作業しても同じ環境になる。
 
-- [`envs/devcontainer/`](./envs/devcontainer/) … VSCodeのdevcontainerで利用する（従来からの方式）
-- [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) … Claude Codeをremote-controlで動かす。
-  devcontainerを前提とせずdocker composeで起動する。
-  詳細は[こちら](./envs/denv-cc-remote/README.md)を参照。
+| 環境 | 用途 | 起動 |
+| --- | --- | --- |
+| [`envs/devcontainer/`](./envs/devcontainer/) | VSCodeのdevcontainerで利用する（従来からの方式） | VSCodeの`Reopen in Container` |
+| [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) | Claude Codeをremote-controlで動かす。devcontainerを前提とせずdocker composeで起動する | `docker compose up -d`（[手順](./envs/denv-cc-remote/README.md)） |
 
 レジストリへ公開しているのはベースイメージの`tamuto/devenviron`だけで、
 `envs/`配下の各環境は利用者の手元でビルドする。
 このためバージョン番号を持つのはベースイメージだけであり、
 「どのdevenvironの上に構築されたか」で環境が一意に定まる。
+
+## 認証情報と設定の置き場所
+
+ssh鍵やAWSの認証情報など、コンテナを作り直しても失いたくないものは
+ホスト側の`.devcontainer/denv/`に置き、コンテナへbind mountしている。
+
+| 種別 | 対象 |
+| --- | --- |
+| ディレクトリ | `.ssh` / `.aws` / `.config` |
+| ファイル | `.gitconfig` / `.git-credentials` / `.npmrc` |
+| Claude Code用 | `.claude` / `.claude.json`（denv-cc-remoteのみ） |
+
+**両環境で同じ実体を共有する。**
+マウントの一覧は`envs/devcontainer/devcontainer.json`と
+`envs/denv-cc-remote/compose.base.yaml`の両方に書かれており、揃えて管理する。
+
+bind mountのソースが存在しないとDockerがそれを**ディレクトリとして作る**。
+ファイルであるべきものがディレクトリになると起動できなくなるため、
+`setup.sh`を先に実行して正しい型で用意しておくこと。
 
 ## 独自コマンド
 
@@ -44,6 +83,8 @@
 ## イメージのビルド
 
 - 適切なイメージが存在しない場合は、自分でビルドする必要がある。
+- レジストリへ公開するのはx86向けのみで、Jetson(L4T)向けは実機でビルドする。
+- 汎用のaarch64（AWS Gravitonなど）はx86向けと同じスクリプトをそのまま使う。
 - [こちら](./docs/rebuild.md)を参照。
 
 ## イメージ内に含まれるソフトウェア
@@ -79,7 +120,21 @@
   * ffmpeg
   * sox
 
-将来的にはdevcontainerのfeaturesへの移行を行いたい。
+## リポジトリの構成
+
+| パス | 内容 |
+| --- | --- |
+| [`envs/`](./envs/) | 利用環境の定義。利用者の手元でビルドする |
+| [`template/container/`](./template/container/) | ベースイメージのDockerfileテンプレートと同梱リソース |
+| [`template/shell/`](./template/shell/) | ホスト側へ配置する独自コマンド |
+| [`scripts/`](./scripts/) | ベースイメージのビルドスクリプト |
+| [`manifests/`](./manifests/) | ビルド時点の構成の記録 |
+| [`runtimes/`](./runtimes/) | 軽量ランタイムイメージ。CI/CDへ提供するための補助的なツール群で、サポート対象の成果物ではない |
+| [`docs/`](./docs/) | 各種ドキュメント |
+| `setup.sh` | ホスト側のセットアップ |
+| `deploy.sh` | ベースイメージの公開 |
+
+`build/`はビルドスクリプトが生成する作業ディレクトリであり、リポジトリでは管理しない。
 
 ## 改善課題
 
