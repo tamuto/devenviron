@@ -72,5 +72,4 @@ services:
 
 # extends では top-level の volumes は引き継がれないため、ここで宣言する。
 volumes:
-  claude-versions:
   serena-data:

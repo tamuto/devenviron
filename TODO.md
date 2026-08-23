@@ -211,7 +211,11 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     ビルド時にバージョンを記録しても即座に無意味になる。
     記録が必要な構成はベースイメージ側の `/etc/devenviron/manifest.txt` が持つ。
   - **認証情報の永続化**: 名前付きボリューム `claude-config` を `/root/.claude` へ。
-    自動更新されたバイナリの実体は `claude-versions` を `/root/.local/share/claude` へ。
+    自動更新されたバイナリの実体は当初 `claude-versions` を `/root/.local/share/claude` へ
+    マウントして永続化していたが、これは取りやめた。
+    名前付きボリュームの初期化は作成時の1回だけであり、
+    イメージを作り直すと `/root/.local/bin/claude` のリンク先が
+    ボリューム内に存在せず起動できなくなるため。
   - **初回のみ対話操作が必要**: サーバモードはログイン済みでないと起動時にエラー終了する。
     またワークスペース信頼の承認も必要。`docker compose run --rm ... claude` で済ませる。
   - **設定してはいけない環境変数**: `DISABLE_TELEMETRY` / `DO_NOT_TRACK` /
