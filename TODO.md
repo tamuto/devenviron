@@ -507,8 +507,10 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
   - ファイル名が `bash_aliases` なのに `/root/.bashrc` として COPY されており、
     ベースイメージの `.bashrc` を完全に上書きしている。実態に合った名前にする。
   - ※ すべて対応済み。
-    配置先を `/root/.bash_aliases` に変え、`.bashrc` の末尾へ読み込みを追記する形にした。
-    ファイル名と配置先が一致し、ベースイメージの `.bashrc` も壊さない。
+    `resources/bashrc.sh` へ改名し、`/etc/devenviron/bashrc.sh` として配置して
+    `/root/.bashrc` の末尾から読み込む形にした。
+    `manifest.txt` と同じ「devenviron が持ち込んだもの」の置き場所に統一している。
+    ベースイメージの `.bashrc` を壊さず、利用者個人の `~/.bash_aliases` も占有しない。
     あわせて volta の PATH 設定を冪等にした（上書きをやめたことで
     volta のインストーラが `.bashrc` へ追記した分と重複するようになったため）。
 

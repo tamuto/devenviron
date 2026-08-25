@@ -152,24 +152,28 @@ RUN case "$(dpkg --print-architecture)" in \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
 
-# 独自のシェル設定は /root/.bash_aliases として置き、.bashrc から読ませる。
-# 以前は bash_aliases を /root/.bashrc として COPY していたが、
+# devenviron が用意するシェル設定。
+# 以前は resources/bash_aliases を /root/.bashrc として COPY していたが、
 # これはベースイメージ側の .bashrc を丸ごと消してしまっていた。
-# ファイル名と配置先が一致していない点も紛らわしかった。
+# ファイル名も中身と一致していなかった (alias 以外に PATH / PS1 / 補完を設定している)。
 #
-# Debian系の .bashrc が持つ ~/.bash_aliases という拡張点に合わせることで、
-# ベースイメージ側の .bashrc の内容を壊さずに自分の設定だけを足せる。
-# (ベースイメージによってはこの読み込みが無いため、追記は自前で行う)
+# 置き場所は /etc/devenviron/ とする。manifest.txt と同じく
+# 「devenviron が持ち込んだもの」を集めるディレクトリであり、所有が明確になる。
+# 利用者個人の設定である ~/.bashrc や ~/.bash_aliases を占有しないため、
+# 各自が自分の設定を別途追加できる。
 #
-# 追記先は .bashrc の末尾とする。ベースイメージ側で PS1 等が設定されていても、
-# 後から読まれるこちらが優先される。
+# 読み込みは /root/.bashrc の末尾へ追記する。
+# 対話シェル (docker exec bash / docker run -it) が確実に読むのはここだけであり、
+# /etc/profile.d はログインシェルでしか読まれないため使えない。
+# 末尾なのは、Ubuntu系のように .bashrc 自身が PS1 を設定するベースイメージでも
+# 後から読まれるこちらを優先させるため。
 # >> なので .bashrc を持たないベースイメージでは新規作成になる。
-COPY resources/bash_aliases /root/.bash_aliases
+COPY resources/bashrc.sh /etc/devenviron/bashrc.sh
 RUN printf '%s\n' \
     '' \
-    '# devenviron の共通設定。' \
-    'if [ -f ~/.bash_aliases ]; then' \
-    '    . ~/.bash_aliases' \
+    '# devenviron が用意する共通のシェル設定。' \
+    'if [ -f /etc/devenviron/bashrc.sh ]; then' \
+    '    . /etc/devenviron/bashrc.sh' \
     'fi' \
     >> /root/.bashrc
 

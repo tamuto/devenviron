@@ -1,3 +1,11 @@
+# devenviron が用意する共通のシェル設定。
+#
+# /etc/devenviron/bashrc.sh として配置し、/root/.bashrc の末尾から読み込む。
+# 対話シェルでのみ読まれる。非対話実行でも必要な PATH は Dockerfile の ENV が持つ。
+#
+# 利用者個人の設定はここではなく ~/.bashrc や ~/.bash_aliases へ書くこと。
+# このファイルはイメージを作り直すと元に戻る。
+
 # voltaのPATHはDockerfileのENVと、voltaのインストーラが.bashrcへ追記する分でも
 # 通っている。ここは、それらを持たない環境向けのフォールバックとして残す。
 # 無条件にprependすると対話シェルでPATHへ同じ要素が何度も積まれるため、
