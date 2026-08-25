@@ -87,7 +87,7 @@ poetry source add --priority=primary jetson https://pypi.jetson-ai-lab.io/jp6/cu
 
 **レジストリへ公開するイメージは`tamuto/devenviron`だけである。**
 
-`envs/`配下の各環境（devcontainer / denv-cc-remote）は、
+`envs/`配下の各環境（devcontainer / denv-cc-remote / denv-cdx-remote）は、
 このベースイメージを継承して各利用者の手元でビルドする。公開はしない。
 
 ### 公開するのはx86向けのみ
@@ -196,16 +196,17 @@ git commit -m "2026.09.0のビルドマニフェストを追加"
 devenviron を土台とする派生イメージ側の`FROM`が、pushしたタグへ書き換わる。
 
 - `envs/devcontainer/Dockerfile` … VSCode devcontainer 用
-- `envs/denv-cc-remote/Dockerfile` … remote-control 用
+- `envs/denv-cc-remote/Dockerfile` … Claude Code remote-control 用
+- `envs/denv-cdx-remote/Dockerfile` … Codex remote-control 用
 
 ```dockerfile
 FROM tamuto/devenviron:2026.09.0
 ```
 
-**両者は必ず同じバージョンに揃える。**
-VSCode から作業しても remote-control から作業しても同じ環境になることを、
+**3つは必ず同じバージョンに揃える。**
+VSCode、Claude Code、Codexのどこから作業しても同じ環境になることを、
 これで担保している。`deploy.sh`が呼ぶ`scripts/bump_envs.sh`は、
-書き換えた後に2ファイルが揃っていることを確認し、揃わなければ異常終了する。
+書き換えた後に3ファイルが揃っていることを確認し、揃わなければ異常終了する。
 
 自動化しているのは、**この手順が実際に飛ばされたため**である。
 2026.08.2 をpushした際に`FROM`が 2026.08.1 のまま残り、
@@ -218,7 +219,7 @@ pushした時点が「このタグを配布する」と決めた瞬間なので�
 ./scripts/bump_envs.sh 2026.09.0
 ```
 
-**この2ファイル以外にバージョン番号を書かないこと。**
+**この3ファイル以外にバージョン番号を書かないこと。**
 README・TODO.md・その他ドキュメントには記載しない。
 過去に複数箇所へ記載した結果、実際に乖離が発生している。
 

@@ -33,12 +33,13 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 ## 利用環境
 
 `envs/`配下に、devenvironをベースとした利用環境の定義を置いている。
-いずれも同じdevenvironを土台とするため、どちらから作業しても同じ環境になる。
+いずれも同じdevenvironを土台とするため、どこから作業しても同じ環境になる。
 
 | 環境 | 用途 | 起動 |
 | --- | --- | --- |
 | [`envs/devcontainer/`](./envs/devcontainer/) | VSCodeのdevcontainerで利用する（従来からの方式） | VSCodeの`Reopen in Container` |
 | [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) | Claude Codeをremote-controlで動かす。devcontainerを前提とせずdocker composeで起動する | `docker compose up -d`（[手順](./envs/denv-cc-remote/README.md)） |
+| [`envs/denv-cdx-remote/`](./envs/denv-cdx-remote/) | Codex standaloneをremote-control daemonとして動かす。pairing codeで接続する | `docker compose up -d`（[手順](./envs/denv-cdx-remote/README.md)） |
 
 レジストリへ公開しているのはベースイメージの`tamuto/devenviron`だけで、
 `envs/`配下の各環境は利用者の手元でビルドする。
@@ -47,18 +48,26 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 
 ## 認証情報と設定の置き場所
 
-ssh鍵やAWSの認証情報など、コンテナを作り直しても失いたくないものは
-ホスト側の`.devcontainer/denv/`に置き、コンテナへbind mountしている。
+ssh鍵やAWSの認証情報など、各環境で共有するものはホスト側の
+`.devcontainer/denv/`に置き、コンテナへbind mountしている。
+Codexの認証・セッション・remote-control状態は、設定とは分離して
+Dockerのnamed volumeへ保存する。
 
 | 種別 | 対象 |
 | --- | --- |
 | ディレクトリ | `.ssh` / `.aws` / `.config` |
 | ファイル | `.gitconfig` / `.git-credentials` / `.npmrc` |
 | Claude Code用 | `.claude` / `.claude.json`（denv-cc-remoteのみ） |
+| Codex実行時状態 | `codex-state` named volume（denv-cdx-remoteのみ） |
 
-**両環境で同じ実体を共有する。**
+**bind mountする共通設定は各環境で同じ実体を共有する。**
 マウントの一覧は`envs/devcontainer/devcontainer.json`と
-`envs/denv-cc-remote/compose.base.yaml`の両方に書かれており、揃えて管理する。
+各remote環境の`compose.base.yaml`に書かれており、揃えて管理する。
+`codex-state`はdenv-cdx-remote専用であり、他の環境とは共有しない。
+
+Codexのプロジェクト固有MCPは`.codex/config.toml`、skillsは`.agents/skills`へ置き、
+認証などの実行時状態と混在させない。詳細は
+[`denv-cdx-remote`の手順](./envs/denv-cdx-remote/README.md)を参照。
 
 bind mountのソースが存在しないとDockerがそれを**ディレクトリとして作る**。
 ファイルであるべきものがディレクトリになると起動できなくなるため、

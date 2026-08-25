@@ -1,0 +1,21 @@
+# 各自の起動定義。
+#
+#   cp docker-compose.yaml.sample docker-compose.yaml
+#
+# Codex remote-control は共有 app-server をフォアグラウンドで動かす。
+# 同じ codex-state に対して複数サービスを起動しない。
+# 全ワークスペースは /workspaces 以下から参照できる。
+
+services:
+  codex:
+    extends:
+      file: compose.base.yaml
+      service: denv-cdx-remote
+    hostname: denv-cdx
+    # 新規セッションの開始位置として使いたいプロジェクトへ変更してもよい。
+    working_dir: /workspaces
+
+# extends では top-level の volumes は引き継がれないため、ここで宣言する。
+volumes:
+  codex-state:
+  serena-data:

@@ -1,8 +1,8 @@
 #!/bin/sh
 # envs/配下のFROMを指定したバージョンへ揃える。
 #
-# 「配布するバージョン」を持つのはこの2ファイルだけである。
-# 両者が食い違うと、VSCodeから作業した場合とremote-controlから作業した場合とで
+# 「配布するバージョン」を持つのはこの3ファイルだけである。
+# 3者が食い違うと、VSCode・Claude Code・Codexの各環境で
 # 環境が変わってしまうため、必ず同時に更新する。
 #
 # deploy.sh がpush成功後に自動で呼ぶ。単独でも実行できる。
@@ -24,7 +24,7 @@ if [ "$tag" = "latest" ]; then
     exit 1
 fi
 
-files="envs/devcontainer/Dockerfile envs/denv-cc-remote/Dockerfile"
+files="envs/devcontainer/Dockerfile envs/denv-cc-remote/Dockerfile envs/denv-cdx-remote/Dockerfile"
 
 changed=0
 for f in $files; do
@@ -49,7 +49,7 @@ for f in $files; do
     changed=1
 done
 
-# 2ファイルが揃っていることを確認する。ここがズレると環境の統一が崩れる。
+# 3ファイルが揃っていることを確認する。ここがズレると環境の統一が崩れる。
 for f in $files; do
     v=$(sed -n 's|^FROM tamuto/devenviron:\(.*\)$|\1|p' "$f")
     if [ "$v" != "$tag" ]; then

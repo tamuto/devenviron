@@ -1,0 +1,10 @@
+# denv-cdx-remote が全プロジェクトへ提供する環境共通設定。
+# プロジェクト固有の設定は、各リポジトリの .codex/config.toml に置く。
+
+# コンテナではOS keyringを前提にせず、永続化したCODEX_HOMEへ認証を保存する。
+cli_auth_credentials_store = "file"
+
+[mcp_servers.serena]
+command = "serena"
+args = ["start-mcp-server", "--context", "codex"]
+startup_timeout_sec = 60

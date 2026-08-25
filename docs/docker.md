@@ -15,10 +15,11 @@ devenvironのコンテナ内で`docker`コマンドが使える。
 
 ## 有効化
 
-`envs/`配下の両環境とも設定済みで、追加の作業は不要。
+`envs/`配下の各環境とも設定済みで、追加の作業は不要。
 
 - devcontainer … `devcontainer.json`の`mounts`
 - denv-cc-remote … `compose.base.yaml`の`volumes`
+- denv-cdx-remote … `compose.base.yaml`の`volumes`
 
 動作確認は以下で行う。
 
