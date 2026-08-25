@@ -2,7 +2,7 @@
 #
 # ベースイメージのバージョンは envs/devcontainer/Dockerfile および
 # envs/denv-cc-remote/Dockerfile と一致させること。
-FROM tamuto/devenviron:2026.08.2
+FROM tamuto/devenviron:2026.08.3
 
 # Codex は公式の standalone installer で導入する。
 # npm 版と異なり、remote-control が必要とする managed standalone install が
