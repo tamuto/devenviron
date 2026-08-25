@@ -506,8 +506,11 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
     4 行目の git-prompt 側は `-e` でガードされているのに、こちらだけ素通しになっている。
   - ファイル名が `bash_aliases` なのに `/root/.bashrc` として COPY されており、
     ベースイメージの `.bashrc` を完全に上書きしている。実態に合った名前にする。
-  - ※ PS1 の `\[` 重複と bash-completion の無条件 source は修正済み。
-    ファイル名の変更は未対応（Dockerfile.tmpl の COPY と各ビルドスクリプトの cp を伴うため別途）。
+  - ※ すべて対応済み。
+    配置先を `/root/.bash_aliases` に変え、`.bashrc` の末尾へ読み込みを追記する形にした。
+    ファイル名と配置先が一致し、ベースイメージの `.bashrc` も壊さない。
+    あわせて volta の PATH 設定を冪等にした（上書きをやめたことで
+    volta のインストーラが `.bashrc` へ追記した分と重複するようになったため）。
 
 - [ ] **7.2 `denv_backup` / `denv_restore` が現在の構成と一致していない**
   - `denv_backup` は `~/.devenviron/` 配下の `.awsconfig` / `.aws-credentials` を tar するが、
@@ -531,6 +534,8 @@ Claude Code を remote-control で起動する環境を新たに提供し、今�
   - `shellcheck scripts/*.sh template/shell/* etc/runtimes/build.sh`
   - ※ これはビルドを伴わない静的チェックであり、0.2 の「CI でイメージをビルドしない」方針とは別枠。
     ローカル実行のみとするか CI に載せるかは別途判断する。
+  - shellcheck 自体はベースイメージへ導入済み（`template/container/Dockerfile.tmpl`）。
+    残るのは実行タイミングを決めて定着させること。
 
 - [x] **7.5 `denvtime` のシェバンが `#/bin/bash`（`!` 抜け）**
   - 実質 sh で動いてしまうため気付きにくい。

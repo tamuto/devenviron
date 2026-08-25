@@ -111,14 +111,27 @@ bind mountのソースが存在しないとDockerがそれを**ディレクト�
   * awscli (with session-manager-plugin)
   * twine
   * python-dotenv
-  * build-essential
+  * build-essential / cmake / pkg-config
   * sqlite3
   * terraform
   * git / git-lfs
   * subversion
-  * 7z
+  * 7z / zip / unzip / zstd
   * ffmpeg
   * sox
+  * DBクライアント (mysql / psql)
+* 基本コマンド
+
+  ベースイメージ(slim)には入らないが、開発時に当然使うものを補っている。
+
+  * procps / psmisc (`ps` `top` `free` `pgrep` `pkill` `watch` `pstree` `killall`)
+  * iproute2 / net-tools / dnsutils (`ip` `ss` `netstat` `ifconfig` `dig` `nslookup`)
+  * lsof / file / rsync / curl / wget / htop
+  * tree / ripgrep (`rg`) / tmux / bash-completion / shellcheck
+  * vim-tiny / nano（`vi` は`EDITOR`未設定時のgitのフォールバック先になる）
+
+  エディタはvim-tinyとnanoのみとしている。
+  フル版のvimは個人設定に属するものとして入れていない。
 
 ## リポジトリの構成
 
