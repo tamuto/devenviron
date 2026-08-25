@@ -33,12 +33,13 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 ## 利用環境
 
 `envs/`配下に、devenvironをベースとした利用環境の定義を置いている。
-いずれも同じdevenvironを土台とするため、どちらから作業しても同じ環境になる。
+いずれも同じdevenvironを土台とするため、どこから作業しても同じ環境になる。
 
 | 環境 | 用途 | 起動 |
 | --- | --- | --- |
 | [`envs/devcontainer/`](./envs/devcontainer/) | VSCodeのdevcontainerで利用する（従来からの方式） | VSCodeの`Reopen in Container` |
 | [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) | Claude Codeをremote-controlで動かす。devcontainerを前提とせずdocker composeで起動する | `docker compose up -d`（[手順](./envs/denv-cc-remote/README.md)） |
+| [`envs/denv-cdx-remote/`](./envs/denv-cdx-remote/) | Codex standaloneをremote-control daemonとして動かす。pairing codeで接続する | `docker compose up -d`（[手順](./envs/denv-cdx-remote/README.md)） |
 
 レジストリへ公開しているのはベースイメージの`tamuto/devenviron`だけで、
 `envs/`配下の各環境は利用者の手元でビルドする。
@@ -47,18 +48,26 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 
 ## 認証情報と設定の置き場所
 
-ssh鍵やAWSの認証情報など、コンテナを作り直しても失いたくないものは
-ホスト側の`.devcontainer/denv/`に置き、コンテナへbind mountしている。
+ssh鍵やAWSの認証情報など、各環境で共有するものはホスト側の
+`.devcontainer/denv/`に置き、コンテナへbind mountしている。
+Codexの認証・セッション・remote-control状態は、設定とは分離して
+Dockerのnamed volumeへ保存する。
 
 | 種別 | 対象 |
 | --- | --- |
 | ディレクトリ | `.ssh` / `.aws` / `.config` |
 | ファイル | `.gitconfig` / `.git-credentials` / `.npmrc` |
 | Claude Code用 | `.claude` / `.claude.json`（denv-cc-remoteのみ） |
+| Codex実行時状態 | `codex-state` named volume（denv-cdx-remoteのみ） |
 
-**両環境で同じ実体を共有する。**
+**bind mountする共通設定は各環境で同じ実体を共有する。**
 マウントの一覧は`envs/devcontainer/devcontainer.json`と
-`envs/denv-cc-remote/compose.base.yaml`の両方に書かれており、揃えて管理する。
+各remote環境の`compose.base.yaml`に書かれており、揃えて管理する。
+`codex-state`はdenv-cdx-remote専用であり、他の環境とは共有しない。
+
+Codexのプロジェクト固有MCPは`.codex/config.toml`、skillsは`.agents/skills`へ置き、
+認証などの実行時状態と混在させない。詳細は
+[`denv-cdx-remote`の手順](./envs/denv-cdx-remote/README.md)を参照。
 
 bind mountのソースが存在しないとDockerがそれを**ディレクトリとして作る**。
 ファイルであるべきものがディレクトリになると起動できなくなるため、
@@ -68,6 +77,12 @@ bind mountのソースが存在しないとDockerがそれを**ディレクト�
 
 - devenvironが用意する独自コマンドが存在する。
 - [こちら](./docs/commands.md)を参照。
+
+## コンテナ内のシェル環境
+
+- プロンプトのgitブランチ表示やbash補完など、共通のシェル設定を用意している。
+- 実体は`/etc/devenviron/bashrc.sh`で、`~/.bashrc`の末尾から読み込まれる。
+- 読み込まれるタイミングと、個人の設定を足す方法は[こちら](./docs/shell.md)を参照。
 
 ## コンテナ内からのdocker利用
 
@@ -111,14 +126,40 @@ bind mountのソースが存在しないとDockerがそれを**ディレクト�
   * awscli (with session-manager-plugin)
   * twine
   * python-dotenv
-  * build-essential
+  * build-essential / cmake / pkg-config
   * sqlite3
   * terraform
   * git / git-lfs
   * subversion
-  * 7z
+  * 7z / zip / unzip / zstd
   * ffmpeg
   * sox
+  * DBクライアント (mysql / psql)
+* 基本コマンド
+
+  ベースイメージ(slim)には入らないが、開発時に当然使うものを補っている。
+
+  * procps / psmisc (`ps` `top` `free` `pgrep` `pkill` `watch` `pstree` `killall`)
+  * iproute2 / net-tools / dnsutils (`ip` `ss` `netstat` `ifconfig` `dig` `nslookup`)
+  * lsof / file / rsync / curl / wget / htop
+  * tree / ripgrep (`rg`) / tmux / bash-completion / shellcheck
+  * vim-tiny / nano（`vi` は`EDITOR`未設定時のgitのフォールバック先になる）
+
+  エディタはvim-tinyとnanoのみとしている。
+  フル版のvimは個人設定に属するものとして入れていない。
+
+### 何を入れて何を入れないか
+
+- **入れる**: 無いと作業が成立しないもの。
+  `ps`が無ければプロセスを確認できず、エディタが無ければ
+  `git commit`（`-m`なし）や`git rebase -i`がコンテナ内で完結しない。
+  調査手段（`ss` / `dig` / `lsof`）も、コンテナ内で完結しないと原因を追えない。
+- **入れない**: 個人の好みに属するもの。
+  フル版のvimやシェルの入れ替えなどは各自の環境で行う。
+  共通イメージへ入れると、好みが違う利用者にとっては容量だけの負担になる。
+- **入れない**: 入れても機能しないもの。
+  `man-db`はslimベースが`path-exclude`でmanページ本体を除いているため、
+  コマンドだけが増えて内容を読めない。
 
 ## リポジトリの構成
 

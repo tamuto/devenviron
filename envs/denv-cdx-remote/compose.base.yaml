@@ -1,0 +1,47 @@
+# denv-cdx-remote の共通設定。
+# docker-compose.yaml のサービスから extends して利用する。
+#
+# remote-control はフォアグラウンドで動き、外向き接続だけで成立するため、
+# ポート公開は不要。
+
+services:
+  denv-cdx-remote:
+    image: denv-cdx-remote:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Jetson などで bridge の名前解決に失敗する場合は host を指定する。
+      #   DENV_BUILD_NETWORK=host docker compose build
+      network: ${DENV_BUILD_NETWORK:-default}
+    init: true
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    hostname: ${DENV_HOSTNAME:-denv-cdx}
+    volumes:
+      # 開発対象のワークスペース。
+      - ${WORKSPACES_ROOT:-/root/workspaces}:/workspaces
+      # Codex の認証、セッション履歴、remote-control の enrollment 状態。
+      # standalone 本体が入る /root/.codex とは分離し、設定はプロジェクト側の
+      # .codex/config.toml またはイメージ側の /etc/codex/config.toml で管理する。
+      - codex-state:/var/lib/codex
+      # Serena の設定・インデックス・取得済み language server。
+      - serena-data:/root/.serena
+      # devcontainer / Claude Code remote と同じ認証情報・設定を共有する。
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.ssh:/root/.ssh
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.aws:/root/.aws
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.gitconfig:/root/.gitconfig
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.git-credentials:/root/.git-credentials
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.npmrc:/root/.npmrc
+      - ${WORKSPACES_ROOT:-/root/workspaces}/.devcontainer/denv/.config:/root/.config
+      # docker-outside-of-docker。権限上の注意は docs/docker.md を参照。
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - TZ=${TZ:-Asia/Tokyo}
+      - DENV_HOST_WORKSPACES=${WORKSPACES_ROOT:-/root/workspaces}
+      # 認証やremote-control状態だけをvolumeへ保存する。
+      # standalone packageはイメージ内の/root/.codex/packagesをそのまま使う。
+      - CODEX_HOME=/var/lib/codex

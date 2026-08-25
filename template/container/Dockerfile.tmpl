@@ -30,12 +30,54 @@ ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 
 # lsb-release は次の層の lsb_release で使う。
 # software-properties-common の依存で入ってはいるが、暗黙依存にはしない。
+# unzip も同様に zip の Recommends で入るだけのため、明示的に指定する。
 # apt lists はこの層で消しておく。後段で消してもこの層には残ってしまうため。
+#
+# ベースイメージ(slim)は最小構成であり、開発で当然に使うコマンドが入っていない。
+# 特に procps が無いと ps / top / free / kill / pgrep が一切使えず、
+# remote系の環境では常駐プロセスの状態を見る手段がコンテナ内に無くなる。
+# エディタが1つも無いと EDITOR 未設定時に git がフォールバックする vi も
+# 解決できず、git commit / rebase -i がコンテナ内で完結しない。
+#
+# パッケージは以下の意図で並べている。
+#   取得・展開      : curl wget p7zip-full zip unzip zstd
+#   ビルド・言語系  : build-essential cmake pkg-config sqlite3
+#   VCS             : git git-lfs subversion
+#   プロセス/調査   : procps psmisc lsof file htop
+#   ネットワーク    : iputils-ping net-tools iproute2 dnsutils
+#   転送            : rsync
+#   エディタ        : vim-tiny nano
+#   作業支援        : tree ripgrep tmux bash-completion shellcheck
+#   DBクライアント  : default-mysql-client postgresql-client
+#   その他          : software-properties-common gnupg sudo
+#                     ffmpeg sox jq gettext-base lsb-release ca-certificates
+#
+# net-tools (netstat / ifconfig) は非推奨だが、慣れの問題で残している。
+# 現行の iproute2 (ip / ss) を併せて入れ、どちらでも調べられる状態にする。
+#
+# エディタは vim-tiny と nano のみとする。
+# vim-tiny は vi と editor(alternatives) を提供するため外せない。
+# フル版の vim は個人設定に属するものとして入れない。必要なら各自で導入すること。
+#
+# cmake / pkg-config は wheel が無いパッケージをソースからビルドするときに要る。
+# build-essential だけでは足りない場面があるため併せて入れる。
+#
+# shellcheck は scripts/ 配下のシェルスクリプトを手元で検査するために入れている
+# (CIでのビルドは採用しない方針のため、静的チェックはこのイメージ上で行う)。
+#
+# man-db は入れない。slimベースが path-exclude で man ページ本体を除いており、
+# 導入してもコマンドだけが増えて内容が読めないため。
 RUN apt-get update && apt-get install -y \
-    curl build-essential git git-lfs sqlite3 \
-    software-properties-common gnupg sudo iputils-ping net-tools ftp p7zip-full \
-    default-mysql-client subversion ffmpeg sox jq zip gettext-base lsb-release \
-    ca-certificates \
+    curl wget p7zip-full zip unzip zstd \
+    build-essential cmake pkg-config sqlite3 \
+    git git-lfs subversion \
+    procps psmisc lsof file htop \
+    iputils-ping net-tools iproute2 dnsutils \
+    rsync \
+    vim-tiny nano \
+    tree ripgrep tmux bash-completion shellcheck \
+    software-properties-common gnupg sudo default-mysql-client postgresql-client \
+    ffmpeg sox jq gettext-base lsb-release ca-certificates \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 信頼ストアへ追加する証明書。詳細と削除の判断基準は docs/certificates.md を参照。
@@ -92,7 +134,6 @@ RUN pip_opts="--no-cache-dir"; \
     fi \
 &&  pip install $pip_opts \
     poetry \
-    boto \
     boto3 \
     twine \
     setuptools_scm \
@@ -111,13 +152,37 @@ RUN case "$(dpkg --print-architecture)" in \
 &&  dpkg -i session-manager-plugin.deb \
 &&  rm session-manager-plugin.deb
 
-COPY resources/bash_aliases /root/.bashrc
+# devenviron が用意するシェル設定。
+# 以前は resources/bash_aliases を /root/.bashrc として COPY していたが、
+# これはベースイメージ側の .bashrc を丸ごと消してしまっていた。
+# ファイル名も中身と一致していなかった (alias 以外に PATH / PS1 / 補完を設定している)。
+#
+# 置き場所は /etc/devenviron/ とする。manifest.txt と同じく
+# 「devenviron が持ち込んだもの」を集めるディレクトリであり、所有が明確になる。
+# 利用者個人の設定である ~/.bashrc や ~/.bash_aliases を占有しないため、
+# 各自が自分の設定を別途追加できる。
+#
+# 読み込みは /root/.bashrc の末尾へ追記する。
+# 対話シェル (docker exec bash / docker run -it) が確実に読むのはここだけであり、
+# /etc/profile.d はログインシェルでしか読まれないため使えない。
+# 末尾なのは、Ubuntu系のように .bashrc 自身が PS1 を設定するベースイメージでも
+# 後から読まれるこちらを優先させるため。
+# >> なので .bashrc を持たないベースイメージでは新規作成になる。
+COPY resources/bashrc.sh /etc/devenviron/bashrc.sh
+RUN printf '%s\n' \
+    '' \
+    '# devenviron が用意する共通のシェル設定。' \
+    'if [ -f /etc/devenviron/bashrc.sh ]; then' \
+    '    . /etc/devenviron/bashrc.sh' \
+    'fi' \
+    >> /root/.bashrc
+
 COPY resources/ssh-aws.sh /usr/local/bin/ssh-aws.sh
 COPY resources/ssh-fw-aws.sh /usr/local/bin/ssh-fw-aws.sh
 COPY resources/devenviron-manifest /usr/local/bin/devenviron-manifest
 
 # voltaで導入したnode/pnpmを非対話シェルからも参照できるようにする。
-# (従来は.bashrcでのみPATHを通していたため`docker run <image> node -v`が失敗していた)
+# (従来はシェル設定でのみPATHを通していたため`docker run <image> node -v`が失敗していた)
 ENV VOLTA_HOME="/root/.volta"
 ENV PATH="/root/.volta/bin:${PATH}"
 
