@@ -1,4 +1,4 @@
-# 各自のプロジェクト定義。
+# 各自の定義。
 #
 #   cp docker-compose.yaml.sample docker-compose.yaml
 #
@@ -6,91 +6,44 @@
 # 自分の定義を書いてもコミットされない。
 # 共通設定は compose.base.yaml 側にあり、そちらはリポジトリで管理する。
 #
-# ■ サービスはプロジェクトごとに 1 つずつ「並べて」定義する
+# ■ コンテナは待機するだけ。セッションは booth が起こす
 #
-# compose はコンテナを「compose プロジェクト名 + サービス名」で識別する。
-# そのため 1 つのサービスの working_dir を環境変数で切り替えても、
-# 2 回目の up は同じサービスとみなされて既存コンテナが作り直される。
-# つまり 1 つ目が落ちて 2 つ目に置き換わるだけで、複数は起動しない。
-# 複数動かしたい場合は、必ずサービスを増やすこと。
+# コンテナは sleep で待機し、Claude Code のセッションは
+# booth (pnpx @infodb/booth) が中の tmux に作る。
+# プロジェクトが増えてもこのファイルを編集する必要はない。
+#
+#   pnpx @infodb/booth open myproject   # /workspaces/myproject でセッションを起こす
+#   pnpx @infodb/booth open another
+#   pnpx @infodb/booth ls
+#
+# hostname はモバイルや claude.ai に表示されるデバイス名になる。
+# 指定しないとコンテナ ID が表示されて判別できない。
+# セッション名は booth 名がそのまま入るため、ここでは指定しない。
+#
+# container_name は指定しない。省略すると compose が
+# <compose プロジェクト名>-<サービス名>-1 を自動で付ける。
+# docker compose exec / run はサービス名で指定するため支障はない。
 
 services:
-  # 実際のプロジェクトに合わせて、サービス名・hostname・working_dir を
-  # 書き換えて使う。
-  #
-  # hostname はモバイルや claude.ai に表示されるデバイス名になる。
-  # 指定しないとコンテナ ID が表示されて判別できない。
-  #
-  # compose にはサービス名を参照する変数がないため自動では引けない。
-  # ${...} の展開は環境変数と .env しか読まないためである。
-  # 素直に同じ名前を書くこと。
-  #
-  # container_name は指定しない。省略すると compose が
-  # <compose プロジェクト名>-<サービス名>-1 を自動で付ける。
-  # docker compose exec / run はサービス名で指定するため支障はない。
-  #
-  # 初回のログイン・ワークスペース信頼の承認・MCP 登録もこのサービスで行う。
-  #   docker compose run --rm myproject claude
-  myproject:
+  denv:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    hostname: myproject
-    working_dir: /workspaces/myproject
-    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+    hostname: denv
 
-  # --- 2 つ目以降はサービスを増やす ---
+  # --- デバイス名をプロジェクトごとに分けたい場合 ---
   #
-  # サービス 1 つにつきコンテナが 1 つ起動する。
-  # 3 つ定義すれば claude remote-control が 3 プロセス並行で動く。
-  # それぞれがメモリを使うため、常用するものだけ定義するとよい。
-  #
-  # --spawn session は「1 コンテナ = 1 プロジェクト = 1 セッション」。
-  # 従来の CLI と同じ感覚で扱えるため、まずはこの形を勧める。
+  # claude.ai 上のデバイス名はコンテナの hostname なので、
+  # 1 コンテナに同居させると全セッションで同じ名前になる。
+  # 分けたい場合はプロジェクトごとにサービスを立て、
+  # booth 側で service = "{name}" と書く。
+  # コンテナが増えるぶんメモリを使うため、必要なものだけにするとよい。
 
   # another:
   #   extends:
   #     file: compose.base.yaml
   #     service: denv-cc-remote
   #   hostname: another
-  #   working_dir: /workspaces/another
-  #   command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
-
-  # 1 つのプロジェクト内で並行作業したい場合は --spawn worktree にする。
-  # スマホから作った各セッションを Claude Code が自動で
-  # .claude/worktrees/<name>/ へ切り出すため、フォルダを事前に分ける必要はない。
-  # ただし worktree は fresh checkout なので node_modules や .venv は無く、
-  # .env などの gitignore されたファイルも .worktreeinclude を置かないと来ない。
-
-  # parallel:
-  #   extends:
-  #     file: compose.base.yaml
-  #     service: denv-cc-remote
-  #   hostname: parallel
-  #   working_dir: /workspaces/parallel
-  #   command: ["claude", "remote-control", "--name", "parallel", "--spawn", "worktree"]
-
-  # --- booth で tmux セッションとして起こす場合 ---
-  #
-  # claude を command で起動する代わりに、サービスは常駐だけさせておき、
-  # booth から tmux セッションとして起こす形にもできる。
-  # プロジェクトを増やすのに compose を編集する必要がなくなる。
-  # tmux はベースイメージに入っている。詳細は README の
-  # 「booth で tmux セッションとして起こす」を参照。
-  #
-  #   pnpx @infodb/booth open myproject
-  #
-  # working_dir は booth が tmux 側で指定するため要らない。
-  # booth が起こすのは claude --remote-control <name> であり、サーバモードではない。
-  # 1 booth = 1 セッション = 1 プロセスなので、claude のプロセス数は減らない。
-  # 減るのはコンテナの数と、compose を編集する手間である。
-
-  # denv:
-  #   extends:
-  #     file: compose.base.yaml
-  #     service: denv-cc-remote
-  #   hostname: denv
-  #   command: ["sleep", "infinity"]
 
 # extends では top-level の volumes は引き継がれないため、ここで宣言する。
 volumes:

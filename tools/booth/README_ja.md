@@ -73,17 +73,17 @@ workspaces_root = "/workspaces"
 # サーバモード (claude remote-control サブコマンド) ではない。
 command = "claude --remote-control {name}"
 
-# プロジェクトごとに compose のサービスを分けている構成。
-# service の {name} は booth 名に展開される。
+# 1つのコンテナに全 booth を同居させる構成。
 [targets.denv]
 compose_file = "/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
-service = "{name}"
+service = "denv"
 # project = "denv-cc-remote"   # 指定すると docker compose -p に渡る
 
-# 1つのコンテナに全 booth を同居させる構成なら、サービス名を固定で書く。
-# [targets.shared]
+# プロジェクトごとにコンテナを分けている構成なら、service に {name} を書く。
+# booth 名と同じ名前のサービスへ exec する。
+# [targets.perproject]
 # compose_file = "/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
-# service = "denv"
+# service = "{name}"
 
 # 上書きしたい booth だけ書けばよい。書かなくても open できる。
 [booths.myproject]

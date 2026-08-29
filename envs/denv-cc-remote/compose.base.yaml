@@ -1,10 +1,14 @@
 # denv-cc-remote の共通設定。
 #
-# 各プロジェクトのサービスは docker-compose.yaml 側で定義し、
+# サービスは docker-compose.yaml 側で定義し、
 # このファイルの denv-cc-remote サービスを extends して共通設定を引き継ぐ。
 #
 # このファイルは compose から直接読み込まれることはない。
 # docker-compose.yaml の extends から参照されるだけである。
+#
+# コンテナは待機するだけで、Claude Code のセッションは booth が
+# 中の tmux に作る。このため command は sleep であり、working_dir も
+# 持たない (booth が起動時にセッションごとに指定する)。
 #
 # remote-control は claude.ai への外向き通信のみで成立するため、
 # ポート公開は不要。
@@ -30,6 +34,8 @@ services:
       # 該当する環境では .env などで host を指定する。
       #   DENV_BUILD_NETWORK=host
       network: ${DENV_BUILD_NETWORK:-default}
+    # コンテナ自身は何もしない。セッションは booth が tmux に作る。
+    command: ["sleep", "infinity"]
     stdin_open: true
     tty: true
     # モバイルや claude.ai に表示されるデバイス名になる。

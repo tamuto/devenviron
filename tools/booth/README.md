@@ -74,16 +74,16 @@ workspaces_root = "/workspaces"
 # not the server mode (the `claude remote-control` subcommand).
 command = "claude --remote-control {name}"
 
-# One compose service per project: `service` expands {name} to the booth name.
+# One shared container hosting every booth.
 [targets.denv]
 compose_file = "/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
-service = "{name}"
+service = "denv"
 # project = "denv-cc-remote"   # passed as `docker compose -p` when set
 
-# One shared container hosting every booth: write a fixed service name instead.
-# [targets.shared]
+# One container per project: `service` expands {name} to the booth name.
+# [targets.perproject]
 # compose_file = "/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
-# service = "denv"
+# service = "{name}"
 
 # Only booths that need an override have to be listed.
 [booths.myproject]

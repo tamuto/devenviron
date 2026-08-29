@@ -38,7 +38,7 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 | 環境 | 用途 | 起動 |
 | --- | --- | --- |
 | [`envs/devcontainer/`](./envs/devcontainer/) | VSCodeのdevcontainerで利用する（従来からの方式） | VSCodeの`Reopen in Container` |
-| [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) | Claude Codeをremote-controlで動かす。devcontainerを前提とせずdocker composeで起動する | `docker compose up -d`（[手順](./envs/denv-cc-remote/README.md)） |
+| [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) | Claude CodeをRemote Control付きで動かす。devcontainerを前提とせずdocker composeで起動し、セッションは[booth](./tools/booth/)が作る | `docker compose up -d` → `booth open <名前>`（[手順](./envs/denv-cc-remote/README.md)） |
 | [`envs/denv-cdx-remote/`](./envs/denv-cdx-remote/) | Codex standaloneをremote-control daemonとして動かす。pairing codeで接続する | `docker compose up -d`（[手順](./envs/denv-cdx-remote/README.md)） |
 
 レジストリへ公開しているのはベースイメージの`tamuto/devenviron`だけで、

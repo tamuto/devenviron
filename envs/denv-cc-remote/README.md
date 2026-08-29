@@ -1,6 +1,10 @@
 # denv-cc-remote
 
-Claude Code を remote-control で動かすための環境。
+Claude Code を Remote Control 付きで動かすための環境。
+
+**コンテナは待機するだけで、セッションは [booth](../../tools/booth/README_ja.md) が
+中の tmux に作る。** プロジェクトが増えても compose を編集する必要はなく、
+`booth open <プロジェクト名>` で起こし、`booth close` で落とす。
 
 devenviron をベースイメージとした派生イメージであり、
 VSCode の devcontainer と同じ土台の上で動く。
@@ -19,11 +23,15 @@ VSCode の devcontainer と同じ土台の上で動く。
 
 - **Claude Code** … ネイティブインストーラで導入。バックグラウンドで自動更新される。
 - **Serena** … セマンティックなコード検索・編集ツールを提供する MCP サーバ。
-  ツール本体のみ同梱している。MCP としての登録はセットアップ手順5で行う。
+  ツール本体のみ同梱している。MCP としての登録はセットアップ手順6で行う。
+- **tmux** … booth がセッションを作る器。ベースイメージに含まれるため追加のビルドは要らない。
 
 ## 前提
 
 - Docker および Docker Compose が利用できること
+- booth を実行する側で `pnpx`（pnpm）が使えること。
+  booth はコンテナの外から `docker compose exec` するため、
+  ホストか、docker socket を持つ devcontainer のどちらかで動かす
 - Claude Code を利用できるプラン（Pro / Max / Team / Enterprise / Console）のアカウント
   - 無料プランでは Claude Code を利用できない
 - Team / Enterprise の場合、管理者が Remote Control を有効化していること
@@ -65,39 +73,30 @@ devenviron の `setup.sh` を実行済みであれば、これらは作成され
 新規のマシンで cc-remote だけを立てる場合は必ず実施すること
 （構造的な整理は TODO.md の 4.7 で扱う）。
 
-### 3. プロジェクトのサービスを定義する
+### 3. サービスを定義する
 
-雛形をコピーして、実際のプロジェクトに合わせて書き換える。
+雛形をコピーする。**プロジェクトごとに書き換える必要はない。**
+コンテナは待機するだけで、どのプロジェクトで作業するかは booth が決める。
 
 ```bash
 cp docker-compose.yaml.sample docker-compose.yaml
 ```
 
 ```yaml
-  myproject:
+services:
+  denv:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    hostname: myproject
-    working_dir: /workspaces/myproject
-    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
+    hostname: denv
 ```
+
+`command` と `working_dir` は書かない。`command` は `compose.base.yaml` が
+`sleep infinity` を与えており、作業ディレクトリは booth がセッションごとに指定する。
 
 `hostname` は**モバイルや claude.ai に表示されるデバイス名**になる。
 指定しないと Docker が既定でコンテナ ID を hostname にするため、
 16進の羅列が表示されて判別できない。
-`compose.base.yaml` に既定値 `denv` を入れてあるが、
-サービスごとに上書きするとプロジェクト単位で見分けられる。
-
-**compose にはサービス名を参照する変数がない**ため自動では引けない。
-`${...}` の展開は環境変数と `.env` しか読まず、
-サービス名を指す変数は用意されていない。
-（compose はサービス名をコンテナ間 DNS の**ネットワークエイリアス**としては設定するが、
-これは `/etc/hostname` とは別物で、Claude Code が読むのは後者である。）
-
-YAML のアンカーで共通化する手もあるが、
-アンカー名と値の両方を書くことになり記述量はかえって増えるため採用していない。
-素直に同じ名前を書くのがよい。
 
 一方 `container_name` は指定していない。省略すると compose が
 `<compose プロジェクト名>-<サービス名>-1` を自動で付ける。
@@ -108,20 +107,16 @@ YAML のアンカーで共通化する手もあるが、
 
 | ファイル | 内容 | git |
 | --- | --- | --- |
-| `compose.base.yaml` | 共通設定（イメージ・マウント・環境変数） | 管理する |
+| `compose.base.yaml` | 共通設定（イメージ・マウント・環境変数・`sleep` 起動） | 管理する |
 | `docker-compose.yaml.sample` | 雛形 | 管理する |
-| `docker-compose.yaml` | **各自のプロジェクト定義** | `.gitignore` 済み |
+| `docker-compose.yaml` | **各自の定義** | `.gitignore` 済み |
 
 自分の定義を書いてもコミットされないため、
 リポジトリ内でそのまま作業できる。
 
-**以降の手順に出てくる `myproject` は、自分で付けたサービス名に読み替えること。**
+**以降の手順に出てくる `denv` は、自分で付けたサービス名に読み替えること。**
 
-複数のプロジェクトを扱う場合は、サービスを増やす。
-1 つのサービスを環境変数で切り替える形にはしないこと。
-compose はコンテナを「compose プロジェクト名 + サービス名」で識別するため、
-同じサービスに対して 2 回目の `up` を実行すると
-既存コンテナが作り直され、**1 つ目が落ちて 2 つ目に置き換わる**。
+デバイス名をプロジェクトごとに分けたい場合だけ、サービスを増やす選択肢がある。
 詳しくは「複数プロジェクトを扱う」を参照。
 
 ### 4. イメージをビルドする
@@ -136,13 +131,16 @@ docker compose build
 
 ### 5. 初回のログインとワークスペース信頼の承認
 
-remote-control のサーバモードは、ログイン済みでないと起動時にエラーで終了する。
-またワークスペースの信頼を一度承認しておく必要がある。
-いずれも対話操作が必要なため、初回のみ通常のセッションを起動して済ませる。
+ログインが済んでいないと booth は起動しきらず、
+ワークスペースの信頼も一度承認しておく必要がある。
+いずれも対話操作が必要なため、初回のみ手元で claude を起動して済ませる。
 
 ```bash
-docker compose run --rm myproject claude
+docker compose run --rm -w /workspaces/myproject denv claude
 ```
+
+`-w` で対象のプロジェクトディレクトリを指定する。
+信頼はディレクトリ単位で記録されるため、承認したい場所で起動する必要がある。
 
 起動したら以下を行う。
 
@@ -152,7 +150,9 @@ docker compose run --rm myproject claude
 
 **ログインはアカウント単位で一度だけでよい**が、
 **ワークスペースの信頼はディレクトリごとに承認が必要**である。
-プロジェクトを増やしたら、そのプロジェクトを指定して同じ手順を一度実施すること。
+プロジェクトを増やしたら、そのディレクトリを `-w` に指定して同じ手順を一度実施する。
+承認していない状態で `booth open` すると、booth が信頼ダイアログで止まっていることを
+検出して報告するため、気づかないまま進むことはない。
 
 認証情報と組織情報はホスト側の `.devcontainer/denv/.claude` および
 `.devcontainer/denv/.claude.json` に保存されるため、次回以降このやり取りは不要になる。
@@ -174,7 +174,7 @@ MCP の登録内容はイメージには含めていない。
 同梱している Serena を登録する場合は以下。
 
 ```bash
-docker compose run --rm myproject \
+docker compose run --rm denv \
   claude mcp add --scope user serena -- \
   serena start-mcp-server --context claude-code --project-from-cwd
 ```
@@ -182,14 +182,14 @@ docker compose run --rm myproject \
 任意の MCP を追加する場合も同じ要領で登録できる。
 
 ```bash
-docker compose run --rm myproject \
+docker compose run --rm denv \
   claude mcp add --scope user <name> -- npx -y <package>
 ```
 
 登録済みの一覧は以下で確認できる。
 
 ```bash
-docker compose run --rm myproject claude mcp list
+docker compose run --rm denv claude mcp list
 ```
 
 **注意**: 永続化されるのは登録内容であってツール本体ではない。
@@ -199,25 +199,68 @@ docker compose run --rm myproject claude mcp list
 起動のたびにコマンドが解決される形であれば問題なく使える。
 常設したいツールがある場合は `Dockerfile` に追加する。
 
-### 7. 常駐させる
+### 7. コンテナを起こす
 
 ```bash
 docker compose up -d
 ```
 
-`claude remote-control` がサーバモードで起動し、接続を待ち受ける。
-セッションURLはログで確認できる。
+コンテナは `sleep` で待機するだけで、この時点では Claude Code は動いていない。
+
+### 8. booth でセッションを起こす
+
+booth の設定を書く。`booth.toml` は `--config`、`$BOOTH_CONFIG`、
+カレントから親へ辿った `booth.toml`、`~/.config/booth/booth.toml` の順で探される。
+どこからでも使えるようにするなら最後の場所に置くとよい。
 
 ```bash
-docker compose logs -f
+pnpx @infodb/booth init             # カレントに雛形を書き出す
+mkdir -p ~/.config/booth
+mv booth.toml ~/.config/booth/      # どこからでも使えるようにする
 ```
 
-### 8. 接続する
+書き出された雛形を、この環境に合わせて書き換える。
+
+```toml
+[defaults]
+target = "denv"
+workspaces_root = "/workspaces"
+
+[targets.denv]
+# WORKSPACES_ROOT を展開する仕組みは無いため、絶対パスで書く
+compose_file = "/root/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
+service = "denv"
+```
+
+`service` は compose のサービス名である。手順3のとおり 1 つだけ定義したなら `denv` になる。
+`compose_file` と `command` は雛形のままでよい。
+
+セッションを起こす。booth 名は `/workspaces` 直下のフォルダ名であり、
+そのまま tmux のセッション名と Remote Control のセッション名になる。
+
+```bash
+pnpx @infodb/booth open myproject
+pnpx @infodb/booth ls
+```
+
+`open` は tmux が立っただけでは成功とせず、**実際に使える状態になるまで待つ**。
+ログイン待ちや信頼待ちで止まっていれば、その旨と次に叩くコマンドを出して終わる。
+
+### 9. 接続する
 
 [claude.ai/code](https://claude.ai/code) またはスマートフォンの Claude アプリから、
 セッション一覧に表示されるセッションを開く。
+`booth logs <名前>` で手元から画面を読むこともできる。
 
 ### 停止
+
+セッションだけ落とす場合。
+
+```bash
+pnpx @infodb/booth close myproject
+```
+
+コンテナごと落とす場合。
 
 ```bash
 docker compose down
@@ -259,7 +302,7 @@ remote-control は claude.ai への外向き接続で成立する。
 ### Serena MCP について
 
 ツール本体のみイメージに同梱している。
-**MCP としての登録は利用者が行う**（セットアップ手順5）。
+**MCP としての登録は利用者が行う**（セットアップ手順6）。
 
 イメージ側で登録しないのは、ユーザスコープの MCP 登録先が `~/.claude.json` であり、
 このファイルを組織情報の永続化のためホスト側から bind mount しているためである。
@@ -283,8 +326,8 @@ serena start-mcp-server --context claude-code --project-from-cwd
 登録内容を確認したい場合は以下。
 
 ```bash
-docker compose exec myproject claude mcp list
-docker compose exec myproject claude mcp get serena
+docker compose exec denv claude mcp list
+docker compose exec denv claude mcp get serena
 ```
 
 ### モバイルでの表示名
@@ -294,16 +337,13 @@ docker compose exec myproject claude mcp get serena
 | 表示 | 決まり方 | 指定方法 |
 | --- | --- | --- |
 | デバイス名 | コンテナの hostname | compose の `hostname:` |
-| セッション名 | `--name` の値。未指定なら `<hostname>-graceful-unicorn` のような自動生成 | `--name` |
+| セッション名 | booth 名。booth が `claude --remote-control <名前>` に渡す | `booth open <名前>` |
 
-`--name` を指定していれば、セッション名にホスト名は使われない。
-それでもデバイス名は hostname のままなので、
-`hostname:` を指定しないとコンテナ ID が表示される。
+セッション名は booth 名がそのまま入るため、compose 側で指定するものは無い。
+デバイス名は hostname のままなので、`hostname:` を指定しないとコンテナ ID が表示される。
 
-自動生成名の接頭辞だけを変えたい場合は
-`--remote-control-session-name-prefix`（環境変数
-`CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX`）を使う。
-ただしこれはセッション名にしか効かず、デバイス名は変わらない。
+**1 コンテナに複数の booth を同居させると、デバイス名は全セッションで同じになる。**
+区別はセッション名で行う。デバイス名でも分けたい場合は「複数プロジェクトを扱う」を参照。
 
 ### バージョンについて
 
@@ -323,7 +363,7 @@ Serena は自動更新されないため、ビルドした時期によってバ�
 記録が必要な構成はベースイメージ側が `/etc/devenviron/manifest.txt` に持つ。
 
 ```bash
-docker compose exec myproject cat /etc/devenviron/manifest.txt
+docker compose exec denv cat /etc/devenviron/manifest.txt
 ```
 
 ## トラブルシューティング
@@ -441,10 +481,10 @@ Claude Code は認証トークンを `~/.claude/.credentials.json` に、
 ls -la $WORKSPACES_ROOT/.devcontainer/denv/.claude.json
 
 # コンテナ内から中身が見えているか
-docker compose exec myproject sh -c 'ls -la /root/.claude.json; wc -c /root/.claude.json'
+docker compose exec denv sh -c 'ls -la /root/.claude.json; wc -c /root/.claude.json'
 ```
 
-`.claude.json` が 0 バイトのままであれば、セットアップ手順4のログインをやり直す。
+`.claude.json` が 0 バイトのままであれば、セットアップ手順5のログインをやり直す。
 
 なお以下を設定していると、機能フラグの評価自体が止まって同様に利用できなくなる。
 
@@ -452,9 +492,17 @@ docker compose exec myproject sh -c 'ls -la /root/.claude.json; wc -c /root/.cla
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`
 - `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けている
 
-### 2つ目以降のサービスでセッションが開始しない
+### booth が信頼ダイアログで止まる
 
-**ワークスペース信頼が未承認である可能性が高い。**
+`booth open` が以下で終わる場合、そのディレクトリの**ワークスペース信頼が未承認**である。
+
+```
+◌ myproject: starting · blocked on the trust dialog
+  Next:
+    booth attach myproject   approve the folder yourself — the dialog's default is
+                             'No, exit', so Enter would end the session
+```
+
 信頼はディレクトリ単位で管理され、親ディレクトリの承認も、
 同じリポジトリの別 worktree の承認も引き継がれない。
 たとえば `/workspaces/foo` を承認済みでも、
@@ -472,23 +520,29 @@ for path, v in d.get('projects', {}).items():
 ```
 
 対象のディレクトリが一覧に無い、または `False` であれば未承認である。
-そのサービスを指定して一度だけ対話で起動し、承認する。
+booth が起こしたセッションにアタッチして承認するか、
+一度だけ対話で起動して承認する。
 
 ```bash
-docker compose run --rm <サービス名> claude
+pnpx @infodb/booth attach myproject
+#   → ワークスペースの信頼を承認
+
+# または booth を使わずに
+docker compose run --rm -w /workspaces/myproject denv claude
 #   → ワークスペースの信頼を承認 → /exit
-docker compose up -d
 ```
+
+**ダイアログの既定の選択は「No, exit」である。** Enter を押すと承認ではなく終了する。
 
 ### MCP サーバが認識されない
 
 まず登録されているかを確認する。
 
 ```bash
-docker compose exec myproject claude mcp list
+docker compose exec denv claude mcp list
 ```
 
-何も出てこない場合はセットアップ手順5を実施していない。
+何も出てこない場合はセットアップ手順6を実施していない。
 
 登録したのに残らない場合は、`.claude.json` の永続化が効いていない。
 ユーザスコープの登録内容はこのファイルに保存されるため、
@@ -499,14 +553,14 @@ docker compose exec myproject claude mcp list
 cat $WORKSPACES_ROOT/.devcontainer/denv/.claude.json | head -c 200
 
 # コンテナ内から同じ内容が見えているか
-docker compose exec myproject head -c 200 /root/.claude.json
+docker compose exec denv head -c 200 /root/.claude.json
 ```
 
 MCP は登録されているが起動に失敗する場合は、
 そのコマンドがコンテナ内で解決できるかを確認する。
 
 ```bash
-docker compose exec myproject which serena
+docker compose exec denv which serena
 ```
 
 `/root/.local` は永続化していないため、
@@ -515,25 +569,36 @@ docker compose exec myproject which serena
 
 ## 複数プロジェクトを扱う
 
-**remote-control のサーバは 1 つにつき 1 ディレクトリしか扱えない。**
-`--spawn same-dir`（既定）では、スマホや claude.ai から新規セッションを作っても
-すべてサーバの作業ディレクトリで動く。サブフォルダが列挙されることはない。
+**compose を編集する必要はない。** booth 名を変えて開くだけでよい。
 
-そのため `/workspaces` のような「リポジトリの親ディレクトリ」で1つだけ起動しても、
-プロジェクトごとのセッションにはならない。
-公式ドキュメントにも
-「The startup trust dialog never saves trust for your home directory,
-so start Remote Control from a project directory.」とあり、
-プロジェクトディレクトリから起動することが前提になっている。
+```bash
+pnpx @infodb/booth open myproject
+pnpx @infodb/booth open another
+pnpx @infodb/booth ls
+```
 
-### プロジェクトごとにサービスを定義する
+```
+TARGET  SERVICE  NAME       STATE   UPTIME  ATTACHED
+denv    denv     myproject  idle    2h      no
+denv    denv     another    busy    5m      no
+```
 
-**サービス 1 つにつきコンテナが 1 つ起動する。**
-3 つ定義すれば `claude remote-control` が 3 プロセス並行で動くため、
-常用するものだけ定義するとよい。
+1 つのコンテナの中に tmux セッションが並ぶ形になる。
+booth 名は `/workspaces` 直下のフォルダ名であり、
+フォルダ名はワークスペース内で一意なので、セッション名の衝突は起きない。
 
-共通設定は `compose.base.yaml` にあり、`extends` で引き継ぐため、
-サービスごとに書き写す必要はない。
+**claude のプロセス数は減らない。** 1 セッションにつき 1 プロセスであり、
+常用するものだけ開いておくとよい。使い終わったら `booth close` で落とせる。
+
+**プロジェクトを追加したら、そのディレクトリの信頼承認を行うこと。**
+未承認のまま `open` すると booth が信頼ダイアログで止まっていることを報告する。
+手順は「トラブルシューティング」の該当項を参照。
+
+### デバイス名をプロジェクトごとに分ける
+
+claude.ai 上の**デバイス名はコンテナの hostname** なので、
+1 つのコンテナに同居させると全セッションで同じ名前になる。
+デバイス名でも見分けたい場合は、プロジェクトごとにサービスを立てる。
 
 ```yaml
 services:
@@ -542,88 +607,27 @@ services:
       file: compose.base.yaml
       service: denv-cc-remote
     hostname: myproject
-    working_dir: /workspaces/myproject
-    command: ["claude", "remote-control", "--name", "myproject", "--spawn", "session"]
 
   another:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
     hostname: another
-    working_dir: /workspaces/another
-    command: ["claude", "remote-control", "--name", "another", "--spawn", "session"]
+```
 
-# extends では top-level の volumes は引き継がれないため、ここで宣言する
-volumes:
-  serena-data:
+booth 側は `service` に `{name}` と書く。booth 名と同じ名前のサービスへ入る。
+
+```toml
+[targets.denv]
+compose_file = "/root/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
+service = "{name}"
 ```
 
 `extends` の相対パスは**読み込む側（`docker-compose.yaml`）の位置**を基準に解決される。
 両方が同じディレクトリにあるため、`compose.base.yaml` とだけ書けばよい。
 
-```bash
-docker compose up -d
-```
-
-これで claude.ai のセッション一覧に `myproject` と `another` が並び、
-それぞれからセッションを開始できる。
-
-**プロジェクトを追加したら、そのディレクトリの信頼承認を必ず行うこと。**
-ワークスペース信頼はディレクトリ単位で、親ディレクトリや
-同じリポジトリの別 worktree の承認は引き継がれない。
-未承認のままだとセッションが開始しない。
-
-```bash
-docker compose run --rm another claude
-#   → ワークスペースの信頼を承認 → /exit
-```
-
-`--spawn session` は「1 コンテナ = 1 プロジェクト = 1 セッション」で、
-従来の CLI と同じ感覚で扱える。まずはこの形を勧める。
-
-### booth で tmux セッションとして起こす
-
-`command` で claude を起動する代わりに、サービスは常駐だけさせておき、
-[booth](../../tools/booth/README_ja.md) から tmux セッションとして起こす方法もある。
-tmux はベースイメージに入っているため、追加のビルドは要らない。
-
-```yaml
-services:
-  denv:
-    extends:
-      file: compose.base.yaml
-      service: denv-cc-remote
-    hostname: denv
-    command: ["sleep", "infinity"]
-```
-
-```bash
-pnpx @infodb/booth open myproject   # /workspaces/myproject で claude を起こす
-pnpx @infodb/booth open another
-pnpx @infodb/booth ls
-pnpx @infodb/booth close another    # /exit を送って終了させる
-```
-
-booth が起こすのは `claude --remote-control <name>`、
-つまり **Remote Control を有効にした対話セッション**であってサーバモードではない。
-1 booth が 1 セッションに対応するため、`--spawn` や `--capacity` は関係しない。
-`/exit` で終わるのも通常の対話セッションと同じで、`booth close` はこれを送っている。
-
-**変わること**
-
-- プロジェクトを増やすのに compose の編集と `up -d` が要らない。`booth open <name>` だけで済む
-- `restart: unless-stopped` による常駐と違い、セッション単位で起こす・落とすができる
-- `working_dir` は booth が tmux 側で指定するため、サービスには要らない
-
-**変わらないこと**
-
-- **claude のプロセス数は減らない。** 1 booth につき 1 プロセスであり、
-  減るのはコンテナの数と compose を編集する手間である
-- **デバイス名はコンテナの hostname のまま。** 1 コンテナに同居させると
-  claude.ai 上のデバイス名が全 booth で同じになる。区別はセッション名
-  （`--remote-control` に渡す名前。booth 名がそのまま入る）で行う。
-  デバイス名でも分けたい場合は、プロジェクトごとのサービス構成のまま
-  `command` を `sleep infinity` にし、booth 側で `service = "{name}"` と書けばよい
+コンテナが増えるぶんメモリを使う。デバイス名を分ける必要が無ければ、
+1 コンテナに同居させる形で足りる。
 
 ### やってはいけない: 1サービスを環境変数で切り替える
 
@@ -635,58 +639,61 @@ compose プロジェクト名は既定でディレクトリ名であり、環境
 設定が変わったと判断されて**既存コンテナが停止・削除され、作り直される**。
 
 結果として **1 つ目が落ちて 2 つ目に置き換わるだけ**で、複数は起動しない。
-複数動かしたいのであれば、サービスを増やす以外にない。
+booth を使う構成では作業ディレクトリを compose で指定しないため、
+そもそもこの形を取る理由が無い。
 
 ### マウントと衝突についての整理
 
 ```
 ホスト ${WORKSPACES_ROOT}  →  各コンテナの /workspaces （全サービス共通・ツリー全体）
-working_dir                →  そのコンテナのセッションが始まる位置を選ぶだけ
+booth 名                   →  そのセッションが始まる位置を選ぶだけ
 ```
 
 **全コンテナが同じツリー全体をマウントしている。**
-`working_dir` は開始位置の指定であって、見える範囲を絞るものではない。
+booth が指定する作業ディレクトリは開始位置であって、見える範囲を絞るものではない。
 
-衝突は2階層で起こりうる。
-
-- **1 サーバ内**: `--spawn same-dir` の複数セッションは同じディレクトリを共有するため、
-  同じファイルを編集すると衝突する。`--spawn session` または `worktree` なら起きない
-- **サービス間**: 別のコンテナでも、同じフォルダを指していれば当然衝突する。
-  `working_dir` を分けていても書き込み自体はツリー全体に届くため、
-  どのフォルダを担当させるかは運用で決めることになる
+したがって、別々の booth でも同じフォルダを指していれば衝突する。
+booth 名がフォルダ名と一対一である限り同じ場所を二重に開くことはないが、
+書き込み自体はツリー全体に届くため、どのフォルダを担当させるかは運用で決めることになる。
 
 ### 1プロジェクト内で並行作業する
 
-サーバモードは 1 プロセスで複数セッションを扱える（既定の上限は32、`--capacity`）。
-ただし既定の `--spawn same-dir` では**全セッションが同じディレクトリを共有する**ため、
-同じファイルを編集すると競合する。
+同じフォルダに複数のセッションを向けると同じファイルを編集して競合する。
+並行作業が必要なら、**先に git worktree でフォルダを分けてから、それぞれに booth を開く。**
 
-`--spawn worktree` にすると、各セッションを Claude Code が自動で
-[git worktree](https://code.claude.com/docs/en/worktrees) へ切り出す。
-**フォルダを事前に分けておく必要はない。**
-worktree はリポジトリルートの `.claude/worktrees/<name>/` に、
-`worktree-<name>` ブランチで作られる。
+```bash
+git -C /workspaces/myproject worktree add /workspaces/myproject.feature-x -b feature-x
+pnpx @infodb/booth open myproject.feature-x
+```
 
-導入前に知っておくべき点。
+知っておくべき点。
 
 - worktree は fresh checkout のため `node_modules` や `.venv` は無く、
-  セッションごとに入れ直しが必要になる
-- `.env` のような gitignore されたファイルも来ない。
-  リポジトリルートに `.worktreeinclude` を置くと自動コピーできる
-- `.claude/worktrees/` は `.gitignore` に入れておくこと
+  worktree ごとに入れ直しが必要になる
+- `.env` のような gitignore されたファイルも来ない
+- **worktree のディレクトリは別途、信頼の承認が必要**である。
+  元のリポジトリを承認済みでも引き継がれない
 
-段差があるため、並行作業が必要になってから切り替えれば十分である。
+## 起動するコマンドを変える
 
-## サーバモードの主なオプション
+booth が起こすのは `claude --remote-control <booth 名>` である。
+これは **Remote Control を有効にした対話セッション**であって、
+`claude remote-control` のサーバモードではない。1 booth が 1 セッションに対応するため、
+サーバモードの `--spawn` や `--capacity` は関係しない。
 
-`docker-compose.yaml` の `command` で指定できる。
+引数を足したい場合は `booth.toml` の `command` に書く。
+`{name}` と `{workdir}` が展開される。
 
-| オプション | 説明 |
-| --- | --- |
-| `--name "<名前>"` | claude.ai のセッション一覧に表示される名前を指定する |
-| `--remote-control-session-name-prefix <接頭辞>` | 自動生成名の接頭辞。既定はホスト名で `myhost-graceful-unicorn` のような名前になる。環境変数 `CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX` でも同じ |
-| `--spawn worktree` | セッションごとに git worktree を分ける。gitリポジトリが必要 |
-| `--spawn session` | 単一セッションのみ受け付ける |
-| `--capacity <N>` | 同時セッション数の上限。既定は32 |
-| `--continue` | 前回のサーバが扱っていたセッションを復帰させる |
-| `--verbose` | 接続とセッションのログを詳細に出力する |
+```toml
+[defaults]
+command = "claude --remote-control {name} --add-dir /workspaces/shared"
+```
+
+特定の booth だけ変えたい場合は `[booths.<名前>]` に書く。
+
+```toml
+[booths.myproject]
+command = "claude --remote-control myproject --model opus"
+```
+
+指定できるオプションは `docker compose run --rm denv claude --help` で確認できる。
