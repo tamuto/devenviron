@@ -144,6 +144,20 @@ booth send bluenix "テストを流して"   # → 0: 完了 · 11: 判断待ち
 booth status bluenix --json          # 監視プロセス向けの機械可読な状態
 ```
 
+## Claude Code 用の skill
+
+`skill/SKILL.md` は、Claude Code のセッションに booth の操作方法を教えるものです。終了コードの
+取り決め、`booth key` でのダイアログの答え方、そして**答えずに人へ返すべき判断**（信頼ダイアログや
+許可プロンプト）が書いてあります。一度だけ配置します。
+
+```bash
+mkdir -p ~/.claude/skills/booth
+cp "$(pnpm root -g)/@infodb/booth/skill/SKILL.md" ~/.claude/skills/booth/SKILL.md
+```
+
+devenviron では `~/.claude` が `.devcontainer/denv/.claude` から bind mount されているため、
+1回置けば全コンテナで使えます。
+
 ## コンテナ側の前提
 
 サービスには `tmux` が入っていること、そしてサービス自体が起動し続けることが必要です。

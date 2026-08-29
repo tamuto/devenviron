@@ -88,6 +88,14 @@ export function sendText(target: Target, name: string, text: string, enter: bool
   runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(name), 'Enter']);
 }
 
+/**
+ * tmux のキー名 (Enter, Escape, Up, C-c …) をそのまま送る。
+ * ダイアログは選択肢の操作が要るため、テキスト送信では答えられない。
+ */
+export function sendKeys(target: Target, name: string, keys: string[]): void {
+  runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(name), ...keys]);
+}
+
 export function capturePane(target: Target, name: string, lines: number): string {
   const out = runTmuxOrThrow(target, [
     'capture-pane',

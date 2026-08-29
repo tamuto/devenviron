@@ -146,6 +146,20 @@ booth send bluenix "run the tests"    # → 0: turn finished · 11: needs you ·
 booth status bluenix --json           # machine-readable state for a supervising process
 ```
 
+## Skill for Claude Code
+
+`skill/SKILL.md` teaches a Claude Code session how to drive booth — the exit-code contract, how
+to answer a dialog with `booth key`, and which decisions to hand back to the user instead of
+answering. Install it once:
+
+```bash
+mkdir -p ~/.claude/skills/booth
+cp "$(pnpm root -g)/@infodb/booth/skill/SKILL.md" ~/.claude/skills/booth/SKILL.md
+```
+
+Under devenviron, `~/.claude` is bind mounted from `.devcontainer/denv/.claude`, so installing it
+once makes it available in every container.
+
 ## Container requirements
 
 The service must have `tmux` installed and must stay up on its own — the interactive

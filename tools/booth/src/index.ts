@@ -36,12 +36,13 @@ import {
   killSession,
   killSessionSafe,
   listSessions,
+  sendKeys,
   sendText,
   sleepSync,
   survivedStartup,
 } from './session.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
 /** init が書き出す雛形。パッケージ同梱の booth.example.toml がそのまま原本。 */
 const SAMPLE_CONFIG_PATH = path.join(
@@ -278,6 +279,28 @@ program
       });
     }
   );
+
+program
+  .command('key')
+  .description('Send tmux key names (Enter, Escape, Up, C-c …) — how you answer a dialog')
+  .argument('<name>', 'Booth name')
+  .argument('<keys...>', 'tmux key names, in order')
+  .option('-t, --target <target>', 'Target the booth runs on')
+  .option('--pane <lines>', 'Lines of pane output to show afterwards', '25')
+  .action((name: string, keys: string[], options: { target?: string; pane: string }) => {
+    run(() => {
+      const booth = requireOpen(name, options.target);
+      sendKeys(booth.target, booth.name, keys);
+      console.log(`${chalk.green('✔')} Sent ${keys.join(' ')} to ${chalk.bold(booth.name)}`);
+
+      // キー操作は画面を見て次を決めるものなので、少し待ってから結果を返す。
+      sleepSync(1000);
+      const state = inspectBooth(booth);
+      reportState(booth, state, { paneOnAttention: false });
+      printPane(booth, Number(options.pane));
+      process.exit(exitCodeFor(state));
+    });
+  });
 
 program
   .command('status')

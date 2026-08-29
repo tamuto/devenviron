@@ -52,6 +52,9 @@ pnpx @infodb/booth open <name>
 - booth 名は `/workspaces` 直下のフォルダ名であり、そのまま tmux のセッション名になる
 - 実体は `docker compose exec <service> tmux ...` であり、状態はコンテナ内の tmux が持つ
 - 設定は `booth.toml`。`booth init` で雛形を書き出せる
+- `key` で tmux のキー名 (Enter / Escape / Up …) を送れる。ダイアログはテキストでは答えられないため
+- Claude Code に booth を操作させるための skill を同梱している
+  (`tools/booth/skill/SKILL.md` を `~/.claude/skills/booth/` へ置く)
 - 詳細は [`tools/booth/`](../tools/booth/README_ja.md) を参照
 
 ```bash
