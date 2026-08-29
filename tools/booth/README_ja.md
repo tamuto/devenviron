@@ -33,20 +33,20 @@ booth は `docker compose` を叩くため、compose プロジェクトを操作
 ## クイックスタート
 
 ```bash
-booth init          # booth.toml の雛形を書き出す
-booth targets       # 設定済みのターゲットを表示
-booth open allesc   # tmux new-session -d -s allesc -c /workspaces/allesc claude --remote-control allesc
+booth init             # booth.toml の雛形を書き出す
+booth targets          # 設定済みのターゲットを表示
+booth open myproject   # /workspaces/myproject で myproject というセッションを起こす
 booth ls
-booth send allesc "テストを流して結果を教えて"   # 完了まで待ち、判断が要れば止まる
-booth status allesc
-booth logs allesc
-booth close allesc
+booth send myproject "テストを流して結果を教えて"   # 完了まで待ち、判断が要れば止まる
+booth status myproject
+booth logs myproject
+booth close myproject
 ```
 
 ## 名前の扱い
 
 booth 名は `workspaces_root` 直下のフォルダ名であり、そのまま tmux のセッション名になります。
-`booth open allesc` なら `/workspaces/allesc` で `allesc` というセッションを起こします。
+`booth open myproject` なら `/workspaces/myproject` で `myproject` というセッションを起こします。
 フォルダ名はワークスペース内で一意なので、セッション名の衝突も起きません。
 
 ## 設定
@@ -86,9 +86,9 @@ service = "{name}"
 # service = "denv"
 
 # 上書きしたい booth だけ書けばよい。書かなくても open できる。
-[booths.allesc]
+[booths.myproject]
 target = "denv"
-command = "claude --remote-control allesc --add-dir /workspaces/shared"
+command = "claude --remote-control myproject --add-dir /workspaces/shared"
 ```
 
 どちらの構成でも動きます。`service = "{name}"` なら booth ごとに専用コンテナが対応し、
@@ -140,8 +140,8 @@ booth の要点は、コマンドを投げっぱなしにしないことです�
 終わるのを待ってから `/exit` を送ります。処理中に送った `/exit` は取りこぼされるためです。
 
 ```bash
-booth send bluenix "テストを流して"   # → 0: 完了 · 11: 判断待ち · 10: まだ処理中
-booth status bluenix --json          # 監視プロセス向けの機械可読な状態
+booth send myproject "テストを流して"   # → 0: 完了 · 11: 判断待ち · 10: まだ処理中
+booth status myproject --json          # 監視プロセス向けの機械可読な状態
 ```
 
 ## Claude Code 用の skill

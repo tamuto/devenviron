@@ -33,21 +33,21 @@ already present). The examples below assume `booth` resolves to one of the forms
 ## Quick start
 
 ```bash
-booth init          # write a sample booth.toml
-booth targets       # show the configured targets
-booth open allesc   # tmux new-session -d -s allesc -c /workspaces/allesc claude --remote-control allesc
+booth init             # write a sample booth.toml
+booth targets          # show the configured targets
+booth open myproject   # start claude in /workspaces/myproject as session 'myproject'
 booth ls
-booth send allesc "run the tests and report back"   # waits, and stops if it needs you
-booth status allesc
-booth logs allesc
-booth close allesc
+booth send myproject "run the tests and report back"   # waits, stops if it needs you
+booth status myproject
+booth logs myproject
+booth close myproject
 ```
 
 ## Naming
 
 A booth name is a folder name under `workspaces_root`, and it is used as-is for the tmux
-session name. `booth open allesc` starts the command in `/workspaces/allesc` as session
-`allesc`. Because folder names are unique within the workspaces root, session names cannot
+session name. `booth open myproject` starts the command in `/workspaces/myproject` as session
+`myproject`. Because folder names are unique within the workspaces root, session names cannot
 collide.
 
 ## Configuration
@@ -86,9 +86,9 @@ service = "{name}"
 # service = "denv"
 
 # Only booths that need an override have to be listed.
-[booths.allesc]
+[booths.myproject]
 target = "denv"
-command = "claude --remote-control allesc --add-dir /workspaces/shared"
+command = "claude --remote-control myproject --add-dir /workspaces/shared"
 ```
 
 Both container layouts work. With `service = "{name}"` each booth gets its own container, and
@@ -142,8 +142,8 @@ so `send` refuses to do it unless you pass `--force`. `booth close` waits for th
 turn to finish before sending `/exit`, because a `/exit` typed mid-turn is dropped.
 
 ```bash
-booth send bluenix "run the tests"    # → 0: turn finished · 11: needs you · 10: still busy
-booth status bluenix --json           # machine-readable state for a supervising process
+booth send myproject "run the tests"    # → 0: turn finished · 11: needs you · 10: still busy
+booth status myproject --json           # machine-readable state for a supervising process
 ```
 
 ## Skill for Claude Code

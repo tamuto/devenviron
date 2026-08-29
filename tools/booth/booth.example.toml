@@ -1,7 +1,7 @@
 # booth の設定サンプル。`booth init` はこのファイルを書き出す。
 #
 # booth 名 = workspaces_root 直下のフォルダ名 = tmux のセッション名。
-# 例) booth open allesc  ->  /workspaces/allesc で allesc というセッションを起こす
+# 例) booth open myproject  ->  /workspaces/myproject で myproject というセッションを起こす
 
 [defaults]
 # --target を省略したときに使うターゲット。targets が1つだけなら省略可。
@@ -26,6 +26,6 @@ service = "{name}"
 # service = "denv"
 
 # 個別に上書きしたい booth だけ書けばよい。書かなくても open できる。
-# [booths.allesc]
+# [booths.myproject]
 # target = "denv"
-# command = "claude --remote-control allesc --add-dir /workspaces/shared"
+# command = "claude --remote-control myproject --add-dir /workspaces/shared"
