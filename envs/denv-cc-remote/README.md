@@ -581,6 +581,44 @@ docker compose run --rm another claude
 `--spawn session` は「1 コンテナ = 1 プロジェクト = 1 セッション」で、
 従来の CLI と同じ感覚で扱える。まずはこの形を勧める。
 
+### booth で tmux セッションとして起こす
+
+`command` で claude を起動する代わりに、サービスは常駐だけさせておき、
+[booth](../../tools/booth/README_ja.md) から tmux セッションとして起こす方法もある。
+tmux はベースイメージに入っているため、追加のビルドは要らない。
+
+```yaml
+services:
+  denv:
+    extends:
+      file: compose.base.yaml
+      service: denv-cc-remote
+    hostname: denv
+    command: ["sleep", "infinity"]
+```
+
+```bash
+pnpx @infodb/booth open myproject   # /workspaces/myproject で claude を起こす
+pnpx @infodb/booth open another
+pnpx @infodb/booth ls
+pnpx @infodb/booth close another    # /exit を送って終了させる
+```
+
+**変わること**
+
+- プロジェクトを増やすのに compose の編集と `up -d` が要らない。`booth open <name>` だけで済む
+- `restart: unless-stopped` による常駐と違い、セッション単位で起こす・落とすができる
+- `working_dir` は booth が tmux 側で指定するため、サービスには要らない
+
+**変わらないこと**
+
+- **claude のプロセス数は減らない。** 1 booth につき 1 プロセスであり、
+  減るのはコンテナの数と compose を編集する手間である
+- **デバイス名はコンテナの hostname のまま。** 1 コンテナに同居させると
+  claude.ai 上のデバイス名が全 booth で同じになる。区別はセッション名（`--name`）で行う。
+  デバイス名でも分けたい場合は、プロジェクトごとのサービス構成のまま
+  `command` を `sleep infinity` にし、booth 側で `service = "{name}"` と書けばよい
+
 ### やってはいけない: 1サービスを環境変数で切り替える
 
 `working_dir` を環境変数で差し替えて `up` を繰り返す形にはしないこと。

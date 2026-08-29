@@ -1,0 +1,29 @@
+# booth の設定サンプル。`booth init` はこのファイルを書き出す。
+#
+# booth 名 = workspaces_root 直下のフォルダ名 = tmux のセッション名。
+# 例) booth open allesc  ->  /workspaces/allesc で allesc というセッションを起こす
+
+[defaults]
+# --target を省略したときに使うターゲット。targets が1つだけなら省略可。
+target = "denv"
+# booth 名はこの下のフォルダ名として解釈される。
+workspaces_root = "/workspaces"
+# tmux 内で起動するコマンド。{name} と {workdir} が展開される。
+command = "claude remote-control --name {name} --spawn session"
+
+# プロジェクトごとに compose のサービスを分けている構成。
+# service に {name} を書くと、booth 名と同じ名前のサービスへ exec する。
+[targets.denv]
+compose_file = "/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
+service = "{name}"
+# project = "denv-cc-remote"   # docker compose -p を明示したいとき
+
+# 1つのコンテナに全 booth を同居させる構成なら、サービス名を固定で書く。
+# [targets.shared]
+# compose_file = "/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
+# service = "denv"
+
+# 個別に上書きしたい booth だけ書けばよい。書かなくても open できる。
+# [booths.allesc]
+# target = "denv"
+# command = "claude remote-control --name allesc --spawn session"

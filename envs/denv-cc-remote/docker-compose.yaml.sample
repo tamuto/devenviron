@@ -70,6 +70,26 @@ services:
   #   working_dir: /workspaces/parallel
   #   command: ["claude", "remote-control", "--name", "parallel", "--spawn", "worktree"]
 
+  # --- booth で tmux セッションとして起こす場合 ---
+  #
+  # claude を command で起動する代わりに、サービスは常駐だけさせておき、
+  # booth から tmux セッションとして起こす形にもできる。
+  # プロジェクトを増やすのに compose を編集する必要がなくなる。
+  # tmux はベースイメージに入っている。詳細は README の
+  # 「booth で tmux セッションとして起こす」を参照。
+  #
+  #   pnpx @infodb/booth open myproject
+  #
+  # working_dir は booth が tmux 側で指定するため要らない。
+  # claude のプロセス数は減らない (1 booth = 1 プロセス)。減るのはコンテナの数である。
+
+  # denv:
+  #   extends:
+  #     file: compose.base.yaml
+  #     service: denv-cc-remote
+  #   hostname: denv
+  #   command: ["sleep", "infinity"]
+
 # extends では top-level の volumes は引き継がれないため、ここで宣言する。
 volumes:
   serena-data:

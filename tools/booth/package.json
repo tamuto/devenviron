@@ -1,0 +1,51 @@
+{
+  "name": "@infodb/booth",
+  "version": "0.1.0",
+  "description": "Launch and drive claude sessions inside tmux on a docker compose service (devenviron)",
+  "homepage": "https://github.com/tamuto/devenviron/tree/main/tools/booth",
+  "bugs": "https://github.com/tamuto/devenviron/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tamuto/devenviron",
+    "directory": "tools/booth"
+  },
+  "keywords": [
+    "devenviron",
+    "tmux",
+    "docker-compose",
+    "claude",
+    "remote-control",
+    "session",
+    "cli"
+  ],
+  "author": "tamuto <tamuto@infodb.jp>",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "booth": "./bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "smol-toml": "^1.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "files": [
+    "dist/**/*",
+    "bin/**/*",
+    "booth.example.toml",
+    "README_ja.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

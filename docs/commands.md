@@ -36,6 +36,28 @@ denvtime
 - WSLのホストとの時間を同期するコマンド
 - 特にスクリーンセーバから復帰後にWSL上のUbuntuとホストの時間がずれる問題を解決するために利用する
 
+### booth
+
+```bash
+pnpx @infodb/booth open <name>
+```
+
+- docker compose のサービス上に tmux セッションを作り、その中で Claude Code などの
+  対話型コマンドを起動するコマンド
+- 起動後もコマンドは動き続け、`send` で入力を送り、`logs` で画面を読み、`attach` で入り、
+  `close` で `/exit` を送ってから終了させる
+- booth 名は `/workspaces` 直下のフォルダ名であり、そのまま tmux のセッション名になる
+- 実体は `docker compose exec <service> tmux ...` であり、状態はコンテナ内の tmux が持つ
+- 設定は `booth.toml`。`booth init` で雛形を書き出せる
+- 詳細は [`tools/booth/`](../tools/booth/README_ja.md) を参照
+
+```bash
+pnpx @infodb/booth init            # booth.toml の雛形
+pnpx @infodb/booth ls              # セッション一覧
+pnpx @infodb/booth send myproj "テストを流して"
+pnpx @infodb/booth close myproj    # /exit を送って終了
+```
+
 ## 内部コマンド
 
 - devenvironのコンテナ内で実行できるコマンド

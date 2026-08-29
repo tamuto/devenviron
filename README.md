@@ -78,6 +78,12 @@ bind mountのソースが存在しないとDockerがそれを**ディレクト�
 - devenvironが用意する独自コマンドが存在する。
 - [こちら](./docs/commands.md)を参照。
 
+`tools/`配下には、単一スクリプトでは収まらないコマンドをパッケージとして置いている。
+
+| ツール | 用途 | 実行 |
+| --- | --- | --- |
+| [`tools/booth/`](./tools/booth/) | docker composeのサービス上にtmuxセッションを作り、Claude Codeなどの対話型コマンドを起こして操作する | `pnpx @infodb/booth` |
+
 ## コンテナ内のシェル環境
 
 - プロンプトのgitブランチ表示やbash補完など、共通のシェル設定を用意している。
