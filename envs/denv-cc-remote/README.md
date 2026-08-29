@@ -216,11 +216,9 @@ docker compose up -d
 
 コンテナは `sleep` で待機するだけで、この時点では Claude Code は動いていない。
 
-### 8. booth でセッションを起こす
+### 8. セッションを開始する
 
-booth の設定を書く。`booth.toml` は `--config`、`$BOOTH_CONFIG`、
-カレントから親へ辿った `booth.toml`、`~/.config/booth/booth.toml` の順で探される。
-どこからでも使えるようにするなら最後の場所に置くとよい。
+セッションは [booth](../../tools/booth/README_ja.md) が作る。設定を一度だけ書く。
 
 ```bash
 pnpx @infodb/booth init             # カレントに雛形を書き出す
@@ -228,54 +226,38 @@ mkdir -p ~/.config/booth
 mv booth.toml ~/.config/booth/      # どこからでも使えるようにする
 ```
 
-書き出された雛形を、この環境に合わせて書き換える。
+この環境に合わせるのは `compose_file` と `service` の 2 つだけでよい。
 
 ```toml
-[defaults]
-target = "denv"
-workspaces_root = "/workspaces"
-
 [targets.denv]
 # WORKSPACES_ROOT を展開する仕組みは無いため、絶対パスで書く
 compose_file = "/root/workspaces/.devcontainer/denv-cc-remote/docker-compose.yaml"
 service = "denv"
 ```
 
-`service` は compose のサービス名である。手順3のとおり 1 つだけ定義したなら `denv` になる。
-`compose_file` と `command` は雛形のままでよい。
-
-セッションを起こす。booth 名は `/workspaces` 直下のフォルダ名であり、
-そのまま tmux のセッション名と Remote Control のセッション名になる。
+セッションを起こす。名前は `/workspaces` 直下のフォルダ名を指定する。
 
 ```bash
 pnpx @infodb/booth open myproject
-pnpx @infodb/booth ls
 ```
 
-`open` は tmux が立っただけでは成功とせず、**実際に使える状態になるまで待つ**。
-ログイン待ちや信頼待ちで止まっていれば、その旨と次に叩くコマンドを出して終わる。
+[claude.ai/code](https://claude.ai/code) またはスマートフォンの Claude アプリの
+セッション一覧に現れるので、そこから開く。
 
-### 9. 接続する
+送る・見る・状態を確認するといった操作は
+[tools/booth](../../tools/booth/README_ja.md) を参照。
 
-[claude.ai/code](https://claude.ai/code) またはスマートフォンの Claude アプリから、
-セッション一覧に表示されるセッションを開く。
-`booth logs <名前>` で手元から画面を読むこともできる。
-
-### 停止
-
-セッションだけ落とす場合。
+### 9. セッションを終了する
 
 ```bash
 pnpx @infodb/booth close myproject
 ```
 
-コンテナごと落とす場合。
+コンテナごと落とす場合は以下。認証情報はホスト側に保存されているため保持される。
 
 ```bash
 docker compose down
 ```
-
-認証情報はホスト側に保存されているため保持される。
 
 ## 注意事項
 
@@ -477,16 +459,10 @@ docker compose exec denv sh -c 'ls -la /root/.claude.json; wc -c /root/.claude.j
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK`
 - `ANTHROPIC_BASE_URL` を `api.anthropic.com` 以外へ向けている
 
-### booth が信頼ダイアログで止まる
+### セッションが信頼ダイアログで止まる
 
-`booth open` が以下で終わる場合、そのディレクトリの**ワークスペース信頼が未承認**である。
-
-```
-◌ myproject: starting · blocked on the trust dialog
-  Next:
-    booth attach myproject   approve the folder yourself — the dialog's default is
-                             'No, exit', so Enter would end the session
-```
+`booth open` が `blocked on the trust dialog` で終わる場合、
+そのディレクトリの**ワークスペース信頼が未承認**である。
 
 信頼はディレクトリ単位で管理され、親ディレクトリの承認も、
 同じリポジトリの別 worktree の承認も引き継がれない。
@@ -505,14 +481,9 @@ for path, v in d.get('projects', {}).items():
 ```
 
 対象のディレクトリが一覧に無い、または `False` であれば未承認である。
-booth が起こしたセッションにアタッチして承認するか、
 一度だけ対話で起動して承認する。
 
 ```bash
-pnpx @infodb/booth attach myproject
-#   → ワークスペースの信頼を承認
-
-# または booth を使わずに
 docker compose run --rm -w /workspaces/myproject denv claude
 #   → ワークスペースの信頼を承認 → /exit
 ```
@@ -554,30 +525,25 @@ docker compose exec denv which serena
 
 ## 複数プロジェクトを扱う
 
-**compose を編集する必要はない。** booth 名を変えて開くだけでよい。
+**compose を編集する必要はない。** booth 名を変えて開くだけで、
+1 つのコンテナの中に tmux セッションが並ぶ。
 
 ```bash
 pnpx @infodb/booth open myproject
 pnpx @infodb/booth open another
-pnpx @infodb/booth ls
 ```
 
-```
-TARGET  SERVICE  NAME       STATE   UPTIME  ATTACHED
-denv    denv     myproject  idle    2h      no
-denv    denv     another    busy    5m      no
-```
-
-1 つのコンテナの中に tmux セッションが並ぶ形になる。
-booth 名は `/workspaces` 直下のフォルダ名であり、
-フォルダ名はワークスペース内で一意なので、セッション名の衝突は起きない。
-
-**claude のプロセス数は減らない。** 1 セッションにつき 1 プロセスであり、
-常用するものだけ開いておくとよい。使い終わったら `booth close` で落とせる。
+**claude のプロセス数は減らない。** 1 セッションにつき 1 プロセスなので、
+常用するものだけ開いておき、使い終わったら `booth close` で落とすとよい。
 
 **プロジェクトを追加したら、そのディレクトリの信頼承認を行うこと。**
 未承認のまま `open` すると booth が信頼ダイアログで止まっていることを報告する。
-手順は「トラブルシューティング」の該当項を参照。
+
+全コンテナがワークスペースのツリー全体をマウントしているため、
+別のセッションでも同じフォルダを指していれば当然衝突する。
+booth 名がフォルダ名と一対一である限り同じ場所を二重に開くことはないが、
+書き込み自体はツリー全体に届く。並行して作業する場合は
+先に git worktree でフォルダを分け、それぞれに booth を開くとよい。
 
 ### デバイス名をプロジェクトごとに分ける
 
@@ -609,62 +575,5 @@ compose_file = "/root/workspaces/.devcontainer/denv-cc-remote/docker-compose.yam
 service = "{name}"
 ```
 
-`extends` の相対パスは**読み込む側（`docker-compose.yaml`）の位置**を基準に解決される。
-両方が同じディレクトリにあるため、`compose.base.yaml` とだけ書けばよい。
-
 コンテナが増えるぶんメモリを使う。デバイス名を分ける必要が無ければ、
 1 コンテナに同居させる形で足りる。
-
-### マウントと衝突についての整理
-
-```
-ホスト ${WORKSPACES_ROOT}  →  各コンテナの /workspaces （全サービス共通・ツリー全体）
-booth 名                   →  そのセッションが始まる位置を選ぶだけ
-```
-
-**全コンテナが同じツリー全体をマウントしている。**
-booth が指定する作業ディレクトリは開始位置であって、見える範囲を絞るものではない。
-
-したがって、別々の booth でも同じフォルダを指していれば衝突する。
-booth 名がフォルダ名と一対一である限り同じ場所を二重に開くことはないが、
-書き込み自体はツリー全体に届くため、どのフォルダを担当させるかは運用で決めることになる。
-
-### 1プロジェクト内で並行作業する
-
-同じフォルダに複数のセッションを向けると同じファイルを編集して競合する。
-並行作業が必要なら、**先に git worktree でフォルダを分けてから、それぞれに booth を開く。**
-
-```bash
-git -C /workspaces/myproject worktree add /workspaces/myproject.feature-x -b feature-x
-pnpx @infodb/booth open myproject.feature-x
-```
-
-知っておくべき点。
-
-- worktree は fresh checkout のため `node_modules` や `.venv` は無く、
-  worktree ごとに入れ直しが必要になる
-- `.env` のような gitignore されたファイルも来ない
-- **worktree のディレクトリは別途、信頼の承認が必要**である。
-  元のリポジトリを承認済みでも引き継がれない
-
-## 起動するコマンドを変える
-
-booth が起こすのは `claude --remote-control <booth 名>`、
-つまり **Remote Control を有効にした対話セッション**である。1 booth が 1 セッションに対応する。
-
-引数を足したい場合は `booth.toml` の `command` に書く。
-`{name}` と `{workdir}` が展開される。
-
-```toml
-[defaults]
-command = "claude --remote-control {name} --add-dir /workspaces/shared"
-```
-
-特定の booth だけ変えたい場合は `[booths.<名前>]` に書く。
-
-```toml
-[booths.myproject]
-command = "claude --remote-control myproject --model opus"
-```
-
-指定できるオプションは `docker compose run --rm denv claude --help` で確認できる。
