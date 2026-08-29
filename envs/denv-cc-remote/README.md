@@ -91,8 +91,8 @@ services:
     hostname: denv
 ```
 
-`command` と `working_dir` は書かない。`command` は `compose.base.yaml` が
-`sleep infinity` を与えており、作業ディレクトリは booth がセッションごとに指定する。
+`command` と `working_dir` は書かない。待機はイメージの `CMD`（`sleep infinity`）が
+担い、作業ディレクトリは booth がセッションごとに指定する。
 
 `hostname` は**モバイルや claude.ai に表示されるデバイス名**になる。
 指定しないと Docker が既定でコンテナ ID を hostname にするため、
@@ -107,7 +107,7 @@ services:
 
 | ファイル | 内容 | git |
 | --- | --- | --- |
-| `compose.base.yaml` | 共通設定（イメージ・マウント・環境変数・`sleep` 起動） | 管理する |
+| `compose.base.yaml` | 共通設定（イメージ・マウント・環境変数） | 管理する |
 | `docker-compose.yaml.sample` | 雛形 | 管理する |
 | `docker-compose.yaml` | **各自の定義** | `.gitignore` 済み |
 
@@ -126,6 +126,10 @@ docker compose build
 ```
 
 このイメージはレジストリへ公開していない。各利用者が手元でビルドして使う。
+
+**以前サーバモードで運用していた場合は、必ずビルドし直すこと。**
+待機するかサーバを起動するかはイメージの `CMD` が決めるため、
+古いイメージのままだと compose を更新しても `claude remote-control` が起動してしまう。
 環境の実体はベースイメージ `tamuto/devenviron` 側で固定されているため、
 誰がいつビルドしても同じ開発環境になる。
 

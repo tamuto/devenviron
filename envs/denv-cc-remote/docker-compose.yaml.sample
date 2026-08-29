@@ -8,8 +8,9 @@
 #
 # ■ コンテナは待機するだけ。セッションは booth が起こす
 #
-# コンテナは sleep で待機し、Claude Code のセッションは
+# コンテナはイメージの CMD (sleep) で待機し、Claude Code のセッションは
 # booth (pnpx @infodb/booth) が中の tmux に作る。
+# このため command も working_dir も書かない。
 # プロジェクトが増えてもこのファイルを編集する必要はない。
 #
 #   pnpx @infodb/booth open myproject   # /workspaces/myproject でセッションを起こす
