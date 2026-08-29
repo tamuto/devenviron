@@ -42,8 +42,17 @@ VSCode の devcontainer と同じ土台の上で動く。
 
 `WORKSPACES_ROOT` に開発用フォルダのパスを指定する。未指定時は `/root/workspaces`。
 
+このフォルダの下に置いたプロジェクトが、コンテナの `/workspaces` から見える。
+
 ```bash
 export WORKSPACES_ROOT=/root/workspaces
+```
+
+毎回指定するのが面倒であれば、このディレクトリの `.env` に書いておく。
+`.env` はリポジトリで管理しないため、書いてもコミットされない。
+
+```
+WORKSPACES_ROOT=/root/workspaces
 ```
 
 ### 2. 設定の置き場所をホスト側に用意する
@@ -73,14 +82,9 @@ devenviron の `setup.sh` を実行済みであれば、これらは作成され
 新規のマシンで cc-remote だけを立てる場合は必ず実施すること
 （構造的な整理は TODO.md の 4.7 で扱う）。
 
-### 3. サービスを定義する
+### 3. 起動定義を確認する
 
-雛形をコピーする。**プロジェクトごとに書き換える必要はない。**
-コンテナは待機するだけで、どのプロジェクトで作業するかは booth が決める。
-
-```bash
-cp docker-compose.yaml.sample docker-compose.yaml
-```
+`docker-compose.yaml` はそのまま使える。**コピーも編集も要らない。**
 
 ```yaml
 services:
@@ -88,33 +92,33 @@ services:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
-    hostname: denv
+
+volumes:
+  serena-data:
 ```
 
 `command` と `working_dir` は書かない。待機はイメージの `CMD`（`sleep infinity`）が
 担い、作業ディレクトリは booth がセッションごとに指定する。
+**プロジェクトが増えてもこのファイルは触らない。**
 
-`hostname` は**モバイルや claude.ai に表示されるデバイス名**になる。
-指定しないと Docker が既定でコンテナ ID を hostname にするため、
-16進の羅列が表示されて判別できない。
+環境ごとに変わる値は `compose.base.yaml` が環境変数から読むため、`.env` で与える。
 
-一方 `container_name` は指定していない。省略すると compose が
-`<compose プロジェクト名>-<サービス名>-1` を自動で付ける。
-`docker compose exec` / `run` はサービス名で指定するため支障はない。
-固定したい場合は `container_name:` を足せばよい。
+| 変数 | 用途 | 既定 |
+| --- | --- | --- |
+| `WORKSPACES_ROOT` | 開発用フォルダの場所 | `/root/workspaces` |
+| `DENV_HOSTNAME` | claude.ai に表示されるデバイス名 | `denv` |
+| `TZ` | タイムゾーン | `Asia/Tokyo` |
+| `DENV_BUILD_NETWORK` | ビルド中の RUN が使うネットワーク | `default` |
+
+マウントを足すなど構成そのものを変える場合は `compose.base.yaml` を編集する。
 
 ファイルは以下のように分かれている。
 
-| ファイル | 内容 | git |
-| --- | --- | --- |
-| `compose.base.yaml` | 共通設定（イメージ・マウント・環境変数） | 管理する |
-| `docker-compose.yaml.sample` | 雛形 | 管理する |
-| `docker-compose.yaml` | **各自の定義** | `.gitignore` 済み |
-
-自分の定義を書いてもコミットされないため、
-リポジトリ内でそのまま作業できる。
-
-**以降の手順に出てくる `denv` は、自分で付けたサービス名に読み替えること。**
+| ファイル | 内容 |
+| --- | --- |
+| `compose.base.yaml` | 共通設定（イメージ・マウント・環境変数） |
+| `docker-compose.yaml` | 起動定義。そのまま使える |
+| `.env` | 各自の環境の値。リポジトリでは管理しない |
 
 デバイス名をプロジェクトごとに分けたい場合だけ、サービスを増やす選択肢がある。
 詳しくは「複数プロジェクトを扱う」を参照。
@@ -432,7 +436,6 @@ DENV_BUILD_NETWORK=host docker compose build
 ```
 
 毎回指定するのが面倒であれば、`.env` に書いておく。
-`.env` はリポジトリでは管理しない。
 
 ```
 DENV_BUILD_NETWORK=host
@@ -576,6 +579,7 @@ booth 名は `/workspaces` 直下のフォルダ名であり、
 claude.ai 上の**デバイス名はコンテナの hostname** なので、
 1 つのコンテナに同居させると全セッションで同じ名前になる。
 デバイス名でも見分けたい場合は、プロジェクトごとにサービスを立てる。
+**この場合だけ `docker-compose.yaml` を編集する。**
 
 ```yaml
 services:
