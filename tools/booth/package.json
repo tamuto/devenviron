@@ -1,6 +1,6 @@
 {
   "name": "@infodb/booth",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Launch and drive claude sessions inside tmux on a docker compose service (devenviron)",
   "homepage": "https://github.com/tamuto/devenviron/tree/main/tools/booth",
   "bugs": "https://github.com/tamuto/devenviron/issues",

@@ -37,7 +37,8 @@ booth init          # write a sample booth.toml
 booth targets       # show the configured targets
 booth open allesc   # tmux new-session -d -s allesc -c /workspaces/allesc claude --remote-control allesc
 booth ls
-booth send allesc "run the tests and report back"
+booth send allesc "run the tests and report back"   # waits, and stops if it needs you
+booth status allesc
 booth logs allesc
 booth close allesc
 ```
@@ -105,16 +106,45 @@ script if you need it.
 | --- | --- |
 | `booth init [--force]` | Write a sample `booth.toml` into the current directory |
 | `booth targets` | List the targets defined in the config |
-| `booth open <name> [--target t] [--restart]` | Create the tmux session and start the command |
-| `booth ls [--target t]` | List sessions (target, name, running command, uptime, attached) |
-| `booth send <name> <text...> [--no-enter] [--delay ms]` | Send a line of text to the session |
+| `booth open <name> [--restart] [--no-wait] [--ready-timeout s]` | Create the tmux session, start the command, and wait until it is actually usable |
+| `booth ls [--target t]` | List sessions with their state |
+| `booth status <name> [--json] [--pane n] [--wait-for settled]` | Report the state and exit with a code that matches it |
+| `booth send <name> <text...> [--no-wait] [-w seconds] [--pane n] [-f]` | Send a line, then wait for the turn to finish — or stop as soon as the session needs you |
 | `booth logs <name> [-n lines]` | Print the current pane content |
 | `booth attach <name>` | Attach interactively (detach with the usual `Ctrl-b d`) |
-| `booth close <name> [--exit-command t] [--wait s] [--force]` | Send `/exit`, then kill the session |
+| `booth close <name> [--settle s] [--wait s] [--force]` | Wait for the turn to finish, send `/exit`, then kill the session |
 
 `open` refuses to reuse a live session unless `--restart` is given, checks that the workdir
 exists in the container, and fails loudly if the command dies during startup instead of
 reporting a session that is already gone.
+
+## States and feedback
+
+The point of booth is not to fire commands into the dark. Every command that waits stops
+the moment the session needs a human — and says so, with the pane attached — so whoever
+(or whatever) is driving can react.
+
+The state comes from claude itself, via `claude agents --json` inside the container, so it
+is not screen scraping. There are three tiers:
+
+| State | Meaning | Exit code |
+| --- | --- | --- |
+| `not open` | No tmux session | 13 |
+| `starting` | The session exists but claude has not registered yet — it is booting, or stopped at the login screen or the trust dialog (booth tells you which) | 12 |
+| `idle` | At the prompt, ready for input | 0 |
+| `busy` | Working on a turn | 10 |
+| `waiting` | Stopped on something a human must answer — a dialog, a permission prompt. `waitingFor` says what | 11 |
+| `no status` | The booth does not run claude, so there is nothing to report | 0 |
+
+`booth send` waits for the turn to finish and exits 0. If the session stops on a dialog
+instead, it exits 11 and prints the pane. Sending text into an open dialog would go nowhere,
+so `send` refuses to do it unless you pass `--force`. `booth close` waits for the current
+turn to finish before sending `/exit`, because a `/exit` typed mid-turn is dropped.
+
+```bash
+booth send bluenix "run the tests"    # → 0: turn finished · 11: needs you · 10: still busy
+booth status bluenix --json           # machine-readable state for a supervising process
+```
 
 ## Container requirements
 
