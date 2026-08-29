@@ -126,10 +126,6 @@ docker compose build
 ```
 
 このイメージはレジストリへ公開していない。各利用者が手元でビルドして使う。
-
-**以前サーバモードで運用していた場合は、必ずビルドし直すこと。**
-待機するかサーバを起動するかはイメージの `CMD` が決めるため、
-古いイメージのままだと compose を更新しても `claude remote-control` が起動してしまう。
 環境の実体はベースイメージ `tamuto/devenviron` 側で固定されているため、
 誰がいつビルドしても同じ開発環境になる。
 
@@ -445,29 +441,6 @@ DENV_BUILD_NETWORK=host
 なお、この設定が効くのは**ビルド中**だけである。
 起動後のコンテナのネットワークには影響しない。
 
-### `exec: "claude": executable file not found in $PATH`
-
-イメージを作り直した後にこのエラーで起動しなくなる場合、
-`/root/.local/share/claude` を名前付きボリュームで永続化していないか確認する。
-
-名前付きボリュームがイメージ側の内容で初期化されるのは、
-**そのボリュームを作った1回だけ**である。
-2回目以降はイメージ側が無視され、既存の中身が優先される。
-claude の実体は `versions/<バージョン>` で、
-`/root/.local/bin/claude` はそこへのシンボリックリンクであるため、
-イメージを作り直して claude のバージョンが上がると
-リンク先が古いボリュームの中に存在せず、このエラーになる。
-
-現在の `compose.base.yaml` はこのパスを永続化していない。
-以前の定義で作られたボリュームが残っている場合は削除してよい。
-自動更新で取得したバイナリのキャッシュであり、失っても再取得されるだけである。
-
-```bash
-docker compose down
-docker volume rm denv-cc-remote_claude-versions
-docker compose up -d
-```
-
 ### `Unable to determine your organization for Remote Control eligibility`
 
 ログインには成功しているのに remote-control が起動できない場合、
@@ -633,19 +606,6 @@ service = "{name}"
 コンテナが増えるぶんメモリを使う。デバイス名を分ける必要が無ければ、
 1 コンテナに同居させる形で足りる。
 
-### やってはいけない: 1サービスを環境変数で切り替える
-
-`working_dir` を環境変数で差し替えて `up` を繰り返す形にはしないこと。
-
-compose はコンテナを **「compose プロジェクト名 + サービス名」**で識別する。
-compose プロジェクト名は既定でディレクトリ名であり、環境変数とは無関係である。
-そのため同じサービスに対して 2 回目の `up` を実行すると、
-設定が変わったと判断されて**既存コンテナが停止・削除され、作り直される**。
-
-結果として **1 つ目が落ちて 2 つ目に置き換わるだけ**で、複数は起動しない。
-booth を使う構成では作業ディレクトリを compose で指定しないため、
-そもそもこの形を取る理由が無い。
-
 ### マウントと衝突についての整理
 
 ```
@@ -680,10 +640,8 @@ pnpx @infodb/booth open myproject.feature-x
 
 ## 起動するコマンドを変える
 
-booth が起こすのは `claude --remote-control <booth 名>` である。
-これは **Remote Control を有効にした対話セッション**であって、
-`claude remote-control` のサーバモードではない。1 booth が 1 セッションに対応するため、
-サーバモードの `--spawn` や `--capacity` は関係しない。
+booth が起こすのは `claude --remote-control <booth 名>`、
+つまり **Remote Control を有効にした対話セッション**である。1 booth が 1 セッションに対応する。
 
 引数を足したい場合は `booth.toml` の `command` に書く。
 `{name}` と `{workdir}` が展開される。
