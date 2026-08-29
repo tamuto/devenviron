@@ -44,7 +44,7 @@ interface BoothSpec {
 }
 
 const DEFAULT_WORKSPACES_ROOT = '/workspaces';
-const DEFAULT_COMMAND = ['claude'];
+const DEFAULT_COMMAND = ['claude', '--remote-control', '{name}'];
 
 export class ConfigError extends Error {}
 

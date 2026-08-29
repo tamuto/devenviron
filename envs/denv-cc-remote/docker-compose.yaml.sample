@@ -81,7 +81,9 @@ services:
   #   pnpx @infodb/booth open myproject
   #
   # working_dir は booth が tmux 側で指定するため要らない。
-  # claude のプロセス数は減らない (1 booth = 1 プロセス)。減るのはコンテナの数である。
+  # booth が起こすのは claude --remote-control <name> であり、サーバモードではない。
+  # 1 booth = 1 セッション = 1 プロセスなので、claude のプロセス数は減らない。
+  # 減るのはコンテナの数と、compose を編集する手間である。
 
   # denv:
   #   extends:

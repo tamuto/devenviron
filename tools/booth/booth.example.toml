@@ -9,7 +9,9 @@ target = "denv"
 # booth 名はこの下のフォルダ名として解釈される。
 workspaces_root = "/workspaces"
 # tmux 内で起動するコマンド。{name} と {workdir} が展開される。
-command = "claude remote-control --name {name} --spawn session"
+# --remote-control は「Remote Control を有効にした対話セッション」を起こす。
+# サーバモード (claude remote-control サブコマンド) ではない点に注意。
+command = "claude --remote-control {name}"
 
 # プロジェクトごとに compose のサービスを分けている構成。
 # service に {name} を書くと、booth 名と同じ名前のサービスへ exec する。
@@ -26,4 +28,4 @@ service = "{name}"
 # 個別に上書きしたい booth だけ書けばよい。書かなくても open できる。
 # [booths.allesc]
 # target = "denv"
-# command = "claude remote-control --name allesc --spawn session"
+# command = "claude --remote-control allesc --add-dir /workspaces/shared"

@@ -604,6 +604,11 @@ pnpx @infodb/booth ls
 pnpx @infodb/booth close another    # /exit を送って終了させる
 ```
 
+booth が起こすのは `claude --remote-control <name>`、
+つまり **Remote Control を有効にした対話セッション**であってサーバモードではない。
+1 booth が 1 セッションに対応するため、`--spawn` や `--capacity` は関係しない。
+`/exit` で終わるのも通常の対話セッションと同じで、`booth close` はこれを送っている。
+
 **変わること**
 
 - プロジェクトを増やすのに compose の編集と `up -d` が要らない。`booth open <name>` だけで済む
@@ -615,7 +620,8 @@ pnpx @infodb/booth close another    # /exit を送って終了させる
 - **claude のプロセス数は減らない。** 1 booth につき 1 プロセスであり、
   減るのはコンテナの数と compose を編集する手間である
 - **デバイス名はコンテナの hostname のまま。** 1 コンテナに同居させると
-  claude.ai 上のデバイス名が全 booth で同じになる。区別はセッション名（`--name`）で行う。
+  claude.ai 上のデバイス名が全 booth で同じになる。区別はセッション名
+  （`--remote-control` に渡す名前。booth 名がそのまま入る）で行う。
   デバイス名でも分けたい場合は、プロジェクトごとのサービス構成のまま
   `command` を `sleep infinity` にし、booth 側で `service = "{name}"` と書けばよい
 

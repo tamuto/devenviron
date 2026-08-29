@@ -35,7 +35,7 @@ booth は `docker compose` を叩くため、compose プロジェクトを操作
 ```bash
 booth init          # booth.toml の雛形を書き出す
 booth targets       # 設定済みのターゲットを表示
-booth open allesc   # tmux new-session -d -s allesc -c /workspaces/allesc claude ...
+booth open allesc   # tmux new-session -d -s allesc -c /workspaces/allesc claude --remote-control allesc
 booth ls
 booth send allesc "テストを流して結果を教えて"
 booth logs allesc
@@ -68,7 +68,9 @@ target = "denv"
 # booth 名はこの下のフォルダ名として解釈される (= tmux のセッション名)。
 workspaces_root = "/workspaces"
 # tmux 内で起動するコマンド。{name} と {workdir} が展開される。
-command = "claude remote-control --name {name} --spawn session"
+# --remote-control は Remote Control を有効にした「対話セッション」を起こす。
+# サーバモード (claude remote-control サブコマンド) ではない。
+command = "claude --remote-control {name}"
 
 # プロジェクトごとに compose のサービスを分けている構成。
 # service の {name} は booth 名に展開される。
@@ -85,7 +87,7 @@ service = "{name}"
 # 上書きしたい booth だけ書けばよい。書かなくても open できる。
 [booths.allesc]
 target = "denv"
-command = "claude remote-control --name allesc --spawn session"
+command = "claude --remote-control allesc --add-dir /workspaces/shared"
 ```
 
 どちらの構成でも動きます。`service = "{name}"` なら booth ごとに専用コンテナが対応し、

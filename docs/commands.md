@@ -42,8 +42,8 @@ denvtime
 pnpx @infodb/booth open <name>
 ```
 
-- docker compose のサービス上に tmux セッションを作り、その中で Claude Code などの
-  対話型コマンドを起動するコマンド
+- docker compose のサービス上に tmux セッションを作り、その中で
+  `claude --remote-control <name>`（Remote Control を有効にした対話セッション）を起動するコマンド
 - 起動後もコマンドは動き続け、`send` で入力を送り、`logs` で画面を読み、`attach` で入り、
   `close` で `/exit` を送ってから終了させる
 - booth 名は `/workspaces` 直下のフォルダ名であり、そのまま tmux のセッション名になる

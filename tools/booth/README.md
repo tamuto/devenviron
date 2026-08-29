@@ -35,7 +35,7 @@ already present). The examples below assume `booth` resolves to one of the forms
 ```bash
 booth init          # write a sample booth.toml
 booth targets       # show the configured targets
-booth open allesc   # tmux new-session -d -s allesc -c /workspaces/allesc claude ...
+booth open allesc   # tmux new-session -d -s allesc -c /workspaces/allesc claude --remote-control allesc
 booth ls
 booth send allesc "run the tests and report back"
 booth logs allesc
@@ -69,7 +69,9 @@ target = "denv"
 # Booth names are folders under this directory, and the tmux session name.
 workspaces_root = "/workspaces"
 # The command started inside tmux. {name} and {workdir} are expanded.
-command = "claude remote-control --name {name} --spawn session"
+# --remote-control starts an interactive session with Remote Control enabled,
+# not the server mode (the `claude remote-control` subcommand).
+command = "claude --remote-control {name}"
 
 # One compose service per project: `service` expands {name} to the booth name.
 [targets.denv]
@@ -85,7 +87,7 @@ service = "{name}"
 # Only booths that need an override have to be listed.
 [booths.allesc]
 target = "denv"
-command = "claude remote-control --name allesc --spawn session"
+command = "claude --remote-control allesc --add-dir /workspaces/shared"
 ```
 
 Both container layouts work. With `service = "{name}"` each booth gets its own container, and
