@@ -148,9 +148,10 @@ booth status bluenix --json           # machine-readable state for a supervising
 
 ## Skill for Claude Code
 
-`skill/SKILL.md` teaches a Claude Code session how to drive booth — the exit-code contract, how
-to answer a dialog with `booth key`, and which decisions to hand back to the user instead of
-answering. Install it once:
+`skill/SKILL.md` teaches a Claude Code session the lifecycle — open, send, close — and the
+exit-code contract. It deliberately stops there: when booth stops on something, the CLI itself
+prints the commands to run next, so that knowledge lives in the tool rather than in a document
+that can drift. Install it once:
 
 ```bash
 mkdir -p ~/.claude/skills/booth

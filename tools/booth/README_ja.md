@@ -146,9 +146,10 @@ booth status bluenix --json          # 監視プロセス向けの機械可読�
 
 ## Claude Code 用の skill
 
-`skill/SKILL.md` は、Claude Code のセッションに booth の操作方法を教えるものです。終了コードの
-取り決め、`booth key` でのダイアログの答え方、そして**答えずに人へ返すべき判断**（信頼ダイアログや
-許可プロンプト）が書いてあります。一度だけ配置します。
+`skill/SKILL.md` は、Claude Code のセッションに booth のライフサイクル（open / send / close）と
+終了コードの取り決めを教えるものです。**意図的にそこまでで止めています。** booth が何かで止まった
+ときは CLI 自身が次に叩くコマンドを出すため、その知識は古くなりうる文書ではなくツール側に置いて
+あります。一度だけ配置します。
 
 ```bash
 mkdir -p ~/.claude/skills/booth

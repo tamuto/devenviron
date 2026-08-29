@@ -42,7 +42,7 @@ import {
   survivedStartup,
 } from './session.js';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 /** init が書き出す雛形。パッケージ同梱の booth.example.toml がそのまま原本。 */
 const SAMPLE_CONFIG_PATH = path.join(
@@ -225,9 +225,7 @@ program
             `${chalk.red('✖')} ${chalk.bold(booth.name)} is waiting: ${describe(before)}`
           );
           printPane(booth, Number(options.pane));
-          console.error(
-            chalk.dim('  Answer it with `booth attach` (or resend with --force to type anyway).')
-          );
+          printNext(booth, before);
           process.exit(EXIT.waiting);
         }
 
@@ -262,12 +260,14 @@ program
               `${chalk.yellow('⏸')} ${chalk.bold(booth.name)} needs you: ${describe(result.state)}`
             );
             printPane(booth, Number(options.pane));
+            printNext(booth, result.state);
             process.exit(EXIT.waiting);
           case 'timeout':
             console.log(
               chalk.yellow(`⏱ Still ${result.state.status ?? 'running'} after ${options.waitTimeout}s.`)
             );
             printPane(booth, Number(options.pane));
+            printNext(booth, result.state);
             process.exit(EXIT.busy);
           case 'gone':
             fail(`Booth '${booth.name}' disappeared while waiting.`);
@@ -410,14 +410,16 @@ program
               `${chalk.red('✖')} ${chalk.bold(booth.name)} is waiting: ${describe(result.state)}`
             );
             printPane(booth, 25);
-            console.error(chalk.dim('  Answer it first, or close it with --force.'));
+            printNext(booth, result.state);
+            console.error(chalk.dim(`    booth close ${booth.name} --force   give up on the turn and kill it`));
             process.exit(EXIT.waiting);
           }
           if (result.settled === 'timeout') {
             console.error(
               `${chalk.red('✖')} ${chalk.bold(booth.name)} is still busy after ${options.settle}s.`
             );
-            console.error(chalk.dim('  Wait for it, or close it with --force.'));
+            printNext(booth, result.state);
+            console.error(chalk.dim(`    booth close ${booth.name} --force   give up on the turn and kill it`));
             process.exit(EXIT.busy);
           }
         }
@@ -468,7 +470,11 @@ function config(): Config {
 function requireOpen(name: string, targetOverride?: string): Booth {
   const booth = resolveBooth(config(), name, targetOverride);
   if (!hasSession(booth.target, booth.name)) {
-    fail(`Booth '${booth.name}' is not open on '${booth.target.name}'. Run \`booth open ${booth.name}\` first.`);
+    console.error(
+      `${chalk.red('✖')} Booth '${booth.name}' is not open on '${booth.target.name}'.`
+    );
+    printNext(booth, { phase: 'absent' });
+    process.exit(EXIT.absent);
   }
   return booth;
 }
@@ -482,7 +488,7 @@ function selectTargets(cfg: Config, name?: string): Target[] {
   return [target];
 }
 
-/** 状態を人向けに1〜2行で出す。注意が要る状態ならペインも添える。 */
+/** 状態を人向けに1〜2行で出す。注意が要る状態ならペインと次の一手も添える。 */
 function reportState(booth: Booth, state: BoothState, options: { paneOnAttention: boolean }): void {
   const text = describe(state);
   switch (state.phase) {
@@ -490,6 +496,7 @@ function reportState(booth: Booth, state: BoothState, options: { paneOnAttention
       if (state.status === 'waiting') {
         console.log(`${chalk.yellow('⏸')} ${chalk.bold(booth.name)} needs you: ${text}`);
         if (options.paneOnAttention) printPane(booth, 25);
+        printNext(booth, state);
         return;
       }
       if (state.status === 'idle') {
@@ -497,27 +504,85 @@ function reportState(booth: Booth, state: BoothState, options: { paneOnAttention
         return;
       }
       console.log(`${chalk.cyan('◐')} ${chalk.bold(booth.name)} is ${text}`);
+      printNext(booth, state);
       return;
     case 'starting':
       console.log(`${chalk.yellow('◌')} ${chalk.bold(booth.name)}: ${text}`);
-      if (state.blockedOn === 'login') {
-        console.log(
-          chalk.dim(
-            `  Log in first: docker compose -f ${booth.target.composeFile} run --rm ${booth.target.service} claude`
-          )
-        );
-      }
-      if (state.blockedOn === 'trust') {
-        console.log(chalk.dim(`  Approve the folder: booth attach ${booth.name}`));
-      }
       if (options.paneOnAttention) printPane(booth, 25);
+      printNext(booth, state);
       return;
     case 'absent':
       console.log(`${chalk.dim('○')} ${chalk.bold(booth.name)} is not open`);
+      printNext(booth, state);
       return;
     case 'unknown':
       console.log(`${chalk.dim('?')} ${chalk.bold(booth.name)}: ${text}`);
       return;
+  }
+}
+
+interface NextStep {
+  command: string;
+  why: string;
+}
+
+/**
+ * 止まった理由ごとに、次に叩くコマンドを出す。
+ * 使う側 (人でも AI でも) が手順を覚えていなくても続けられるように、
+ * 知識はドキュメントではなくここに置く。
+ */
+function nextSteps(booth: Booth, state: BoothState): NextStep[] {
+  switch (state.phase) {
+    case 'absent':
+      return [{ command: `booth open ${booth.name}`, why: 'start the session' }];
+
+    case 'starting':
+      if (state.blockedOn === 'login') {
+        return [
+          {
+            command: `docker compose -f ${booth.target.composeFile} run --rm ${booth.target.service} claude`,
+            why: 'log in once, interactively, then open the booth again',
+          },
+        ];
+      }
+      if (state.blockedOn === 'trust') {
+        return [
+          {
+            command: `booth attach ${booth.name}`,
+            why: "approve the folder yourself — the dialog's default is 'No, exit', so Enter would end the session",
+          },
+        ];
+      }
+      return [{ command: `booth status ${booth.name}`, why: 'check again in a moment' }];
+
+    case 'ready':
+      if (state.status === 'waiting') {
+        return [
+          { command: `booth key ${booth.name} Escape`, why: 'dismiss it' },
+          { command: `booth key ${booth.name} Down Enter`, why: 'move and confirm (text will not reach a dialog)' },
+          { command: `booth attach ${booth.name}`, why: 'answer it by hand' },
+        ];
+      }
+      if (state.status !== 'idle' && state.status !== undefined) {
+        return [
+          { command: `booth status ${booth.name} --wait-for settled`, why: 'block until it finishes or needs you' },
+          { command: `booth logs ${booth.name} -n 40`, why: 'see what it is doing' },
+        ];
+      }
+      return [];
+
+    case 'unknown':
+      return [];
+  }
+}
+
+function printNext(booth: Booth, state: BoothState): void {
+  const steps = nextSteps(booth, state);
+  if (steps.length === 0) return;
+  const width = Math.max(...steps.map((s) => s.command.length));
+  console.log(chalk.dim('  Next:'));
+  for (const step of steps) {
+    console.log(chalk.dim(`    ${step.command.padEnd(width)}   ${step.why}`));
   }
 }
 
