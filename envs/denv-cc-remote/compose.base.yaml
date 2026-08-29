@@ -37,11 +37,9 @@ services:
       network: ${DENV_BUILD_NETWORK:-default}
     stdin_open: true
     tty: true
-    # モバイルや claude.ai に表示されるデバイス名になる。
-    # 指定しないと Docker が既定でコンテナ ID を hostname にするため、
-    # 16進の羅列が表示されて判別できない。
-    # サービス側で上書きすればプロジェクト単位で見分けられる。
-    hostname: ${DENV_HOSTNAME:-denv}
+    # hostname はここでは持たない。
+    # モバイルや claude.ai に表示されるデバイス名であり、サービスの identity に
+    # あたるものなので、サービスを定義する docker-compose.yaml 側で指定する。
     volumes:
       # 開発対象のワークスペース。各自の環境に合わせて WORKSPACES_ROOT を指定する。
       # 全サービスがツリー全体を同じようにマウントする。

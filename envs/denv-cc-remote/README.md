@@ -92,6 +92,7 @@ services:
     extends:
       file: compose.base.yaml
       service: denv-cc-remote
+    hostname: denv
 
 volumes:
   serena-data:
@@ -101,12 +102,16 @@ volumes:
 担い、作業ディレクトリは booth がセッションごとに指定する。
 **プロジェクトが増えてもこのファイルは触らない。**
 
+`hostname` は**モバイルや claude.ai に表示されるデバイス名**になる。
+指定しないと Docker が既定でコンテナ ID を hostname にするため、
+16進の羅列が表示されて判別できない。サービスの識別にあたるものなので、
+サービスを定義するこのファイルに書く。
+
 環境ごとに変わる値は `compose.base.yaml` が環境変数から読むため、`.env` で与える。
 
 | 変数 | 用途 | 既定 |
 | --- | --- | --- |
 | `WORKSPACES_ROOT` | 開発用フォルダの場所 | `/root/workspaces` |
-| `DENV_HOSTNAME` | claude.ai に表示されるデバイス名 | `denv` |
 | `TZ` | タイムゾーン | `Asia/Tokyo` |
 | `DENV_BUILD_NETWORK` | ビルド中の RUN が使うネットワーク | `default` |
 
