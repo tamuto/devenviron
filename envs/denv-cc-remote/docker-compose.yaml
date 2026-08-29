@@ -1,0 +1,55 @@
+# denv-cc-remote の起動定義。
+#
+# ■ コンテナは待機するだけ。セッションは booth が起こす
+#
+# コンテナはイメージの CMD (sleep) で待機し、Claude Code のセッションは
+# booth (pnpx @infodb/booth) が中の tmux に作る。
+# このため command も working_dir もここには書かない。
+#
+#   pnpx @infodb/booth open myproject   # /workspaces/myproject でセッションを起こす
+#   pnpx @infodb/booth open another
+#   pnpx @infodb/booth ls
+#
+# **プロジェクトが増えてもこのファイルを編集する必要はない。**
+#
+# ■ 環境ごとの差は .env で与える
+#
+# ワークスペースの場所などは compose.base.yaml が環境変数から読む。
+# .env はリポジトリで管理しないため、書いてもコミットされない。
+#
+#   WORKSPACES_ROOT=/root/workspaces   # 開発用フォルダ。既定はこの値
+#   TZ=Asia/Tokyo
+#
+# マウントを足すなど構成そのものを変える場合は compose.base.yaml を編集する。
+#
+# container_name は指定しない。省略すると compose が
+# <compose プロジェクト名>-<サービス名>-1 を自動で付ける。
+# docker compose exec / run はサービス名で指定するため支障はない。
+
+services:
+  denv:
+    extends:
+      file: compose.base.yaml
+      service: denv-cc-remote
+    # モバイルや claude.ai に表示されるデバイス名。
+    # 指定しないと Docker が既定でコンテナ ID を hostname にするため、
+    # 16進の羅列が表示されて判別できない。
+    hostname: denv
+
+  # --- デバイス名をプロジェクトごとに分けたい場合 ---
+  #
+  # claude.ai 上のデバイス名はコンテナの hostname なので、
+  # 1 コンテナに同居させると全セッションで同じ名前になる。
+  # 分けたい場合はプロジェクトごとにサービスを立て、
+  # booth 側で service = "{name}" と書く。
+  # コンテナが増えるぶんメモリを使うため、必要なものだけにするとよい。
+
+  # another:
+  #   extends:
+  #     file: compose.base.yaml
+  #     service: denv-cc-remote
+  #   hostname: another
+
+# extends では top-level の volumes は引き継がれないため、ここで宣言する。
+volumes:
+  serena-data:

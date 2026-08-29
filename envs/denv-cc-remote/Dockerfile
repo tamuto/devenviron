@@ -1,4 +1,7 @@
-# Claude Code を remote-control で動かすための派生イメージ。
+# Claude Code を Remote Control 付きで動かすための派生イメージ。
+#
+# コンテナ自身は何もしない。セッションは booth が中の tmux に作る。
+# (tools/booth を参照)
 #
 # ベースイメージのバージョンは envs/devcontainer/Dockerfile と一致させること。
 # VSCode 側と同じ devenviron を土台にすることで、
@@ -50,6 +53,14 @@ ENV MCP_TIMEOUT=60000
 
 WORKDIR /workspaces
 
-# サーバモード。claude.ai への外向き接続を待ち受ける。
-# 事前に一度ログインとワークスペース信頼の承認が必要。README.md を参照。
-CMD ["claude", "remote-control"]
+# コンテナは待機するだけ。Claude Code のセッションは booth が
+# docker compose exec 経由で中の tmux に作る。
+#
+# ここでサーバモード (claude remote-control) を起動しないのは、
+# それが「1 コンテナ = 1 プロジェクト = 1 セッション」に固定される形であり、
+# プロジェクトを増やすたびに compose へサービスを足す必要があるためである。
+# booth なら booth open <名前> だけで増やせ、セッション単位で落とせる。
+#
+# セッションを起こす前に、一度ログインとワークスペース信頼の承認が必要。
+# README.md を参照。
+CMD ["sleep", "infinity"]
