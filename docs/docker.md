@@ -19,7 +19,6 @@ devenvironのコンテナ内で`docker`コマンドが使える。
 
 - devcontainer … `devcontainer.json`の`mounts`
 - denv-cc-remote … `compose.base.yaml`の`volumes`
-- denv-cdx-remote … `compose.base.yaml`の`volumes`
 
 動作確認は以下で行う。
 
