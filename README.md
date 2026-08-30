@@ -25,7 +25,8 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 以下が用意される。
 
 - `.devcontainer/` … devcontainerの定義（`devcontainer.json`と`Dockerfile`）
-- `.devcontainer/denv/` … 認証情報と設定の置き場所（後述）
+- `.devcontainer/denv/` … 認証情報と設定の置き場所（後述）。
+  ディレクトリとファイルを正しい型で作り、`.claude.json`は`{}`で初期化する
 - ホスト側の独自コマンド（`denvdb` / `denvtime`）
 
 以降の起動手順は利用環境ごとに異なる。
@@ -39,7 +40,6 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 | --- | --- | --- |
 | [`envs/devcontainer/`](./envs/devcontainer/) | VSCodeのdevcontainerで利用する（従来からの方式） | VSCodeの`Reopen in Container` |
 | [`envs/denv-cc-remote/`](./envs/denv-cc-remote/) | Claude CodeをRemote Control付きで動かす。devcontainerを前提とせずdocker composeで起動し、セッションは[booth](./tools/booth/)が作る | `docker compose up -d` → `booth open <名前>`（[手順](./envs/denv-cc-remote/README.md)） |
-| [`envs/denv-cdx-remote/`](./envs/denv-cdx-remote/) | Codex standaloneをremote-control daemonとして動かす。pairing codeで接続する | `docker compose up -d`（[手順](./envs/denv-cdx-remote/README.md)） |
 
 レジストリへ公開しているのはベースイメージの`tamuto/devenviron`だけで、
 `envs/`配下の各環境は利用者の手元でビルドする。
@@ -50,24 +50,23 @@ curl -H 'Accept: application/vnd.github.raw' https://api.github.com/repos/tamuto
 
 ssh鍵やAWSの認証情報など、各環境で共有するものはホスト側の
 `.devcontainer/denv/`に置き、コンテナへbind mountしている。
-Codexの認証・セッション・remote-control状態は、設定とは分離して
-Dockerのnamed volumeへ保存する。
 
 | 種別 | 対象 |
 | --- | --- |
 | ディレクトリ | `.ssh` / `.aws` / `.config` |
 | ファイル | `.gitconfig` / `.git-credentials` / `.npmrc` |
 | Claude Code用 | `.claude` / `.claude.json`（denv-cc-remoteのみ） |
-| Codex実行時状態 | `codex-state` named volume（denv-cdx-remoteのみ） |
 
 **bind mountする共通設定は各環境で同じ実体を共有する。**
 マウントの一覧は`envs/devcontainer/devcontainer.json`と
-各remote環境の`compose.base.yaml`に書かれており、揃えて管理する。
-`codex-state`はdenv-cdx-remote専用であり、他の環境とは共有しない。
+`envs/denv-cc-remote/compose.base.yaml`に書かれており、揃えて管理する。
 
-Codexのプロジェクト固有MCPは`.codex/config.toml`、skillsは`.agents/skills`へ置き、
-認証などの実行時状態と混在させない。詳細は
-[`denv-cdx-remote`の手順](./envs/denv-cdx-remote/README.md)を参照。
+devcontainerにはClaude Codeを導入しない方針であるため、
+`.claude`と`.claude.json`をマウントするのはdenv-cc-remoteだけである。
+この2つについては一覧が一致しない。
+認証トークンは`.claude/.credentials.json`に、組織情報とRemote Controlの
+可否判定に使う機能フラグのキャッシュは`.claude.json`に分かれて保存されるため、
+両方を永続化しないとRemote Controlが起動できなくなる。
 
 bind mountのソースが存在しないとDockerがそれを**ディレクトリとして作る**。
 ファイルであるべきものがディレクトリになると起動できなくなるため、
@@ -83,6 +82,11 @@ bind mountのソースが存在しないとDockerがそれを**ディレクト�
 | ツール | 用途 | 実行 |
 | --- | --- | --- |
 | [`tools/booth/`](./tools/booth/) | docker composeのサービス上にtmuxセッションを作り、Claude Codeなどの対話型コマンドを起こして操作する | `pnpx @infodb/booth` |
+
+boothは`docker compose exec`でコンテナの外から操作するため、ホストか、
+docker socketを持つdevcontainerのどちらかで実行する。
+設定は`booth.toml`で、`booth init`が雛形を書き出す。
+tmuxはベースイメージに含まれているため、コンテナ側の追加ビルドは要らない。
 
 ## コンテナ内のシェル環境
 
@@ -172,6 +176,7 @@ bind mountのソースが存在しないとDockerがそれを**ディレクト�
 | パス | 内容 |
 | --- | --- |
 | [`envs/`](./envs/) | 利用環境の定義。利用者の手元でビルドする |
+| [`tools/`](./tools/) | 単一スクリプトでは収まらないコマンドのパッケージ |
 | [`template/container/`](./template/container/) | ベースイメージのDockerfileテンプレートと同梱リソース |
 | [`template/shell/`](./template/shell/) | ホスト側へ配置する独自コマンド |
 | [`scripts/`](./scripts/) | ベースイメージのビルドスクリプト |

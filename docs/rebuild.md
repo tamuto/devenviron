@@ -87,7 +87,7 @@ poetry source add --priority=primary jetson https://pypi.jetson-ai-lab.io/jp6/cu
 
 **レジストリへ公開するイメージは`tamuto/devenviron`だけである。**
 
-`envs/`配下の各環境（devcontainer / denv-cc-remote / denv-cdx-remote）は、
+`envs/`配下の各環境は、
 このベースイメージを継承して各利用者の手元でビルドする。公開はしない。
 
 ### 公開するのはx86向けのみ
@@ -194,19 +194,16 @@ git commit -m "2026.09.0のビルドマニフェストを追加"
 **この手順は`deploy.sh`が自動で行う。手で書き換えない。**
 
 devenviron を土台とする派生イメージ側の`FROM`が、pushしたタグへ書き換わる。
-
-- `envs/devcontainer/Dockerfile` … VSCode devcontainer 用
-- `envs/denv-cc-remote/Dockerfile` … Claude Code remote-control 用
-- `envs/denv-cdx-remote/Dockerfile` … Codex remote-control 用
+対象は`envs/`配下の各環境の`Dockerfile`である。
 
 ```dockerfile
 FROM tamuto/devenviron:2026.09.0
 ```
 
-**3つは必ず同じバージョンに揃える。**
-VSCode、Claude Code、Codexのどこから作業しても同じ環境になることを、
-これで担保している。`deploy.sh`が呼ぶ`scripts/bump_envs.sh`は、
-書き換えた後に3ファイルが揃っていることを確認し、揃わなければ異常終了する。
+**対象のDockerfileは必ず同じバージョンに揃える。**
+どの環境から作業しても同じ環境になることを、これで担保している。
+`deploy.sh`が呼ぶ`scripts/bump_envs.sh`は、
+書き換えた後に各ファイルが揃っていることを確認し、揃わなければ異常終了する。
 
 自動化しているのは、**この手順が実際に飛ばされたため**である。
 2026.08.2 をpushした際に`FROM`が 2026.08.1 のまま残り、
