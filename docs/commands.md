@@ -50,6 +50,8 @@ pnpx @infodb/booth open <name>
   状態は `claude agents --json` から取得しており、終了コードでも区別できる
   (0=完了/待機可、10=処理中、11=判断待ち、12=起動できていない、13=未起動)
 - booth 名は `/workspaces` 直下のフォルダ名であり、そのまま tmux のセッション名になる
+- `open` は既定で `--continue` を足し、その作業ディレクトリの前回の会話を引き継ぐ。
+  まっさらから始めたいときは `--no-continue`、設定なら `[defaults].continue = false`
 - 実体は `docker compose exec <service> tmux ...` であり、状態はコンテナ内の tmux が持つ
 - 設定は `booth.toml`。`booth init` で雛形を書き出せる
 - `key` で tmux のキー名 (Enter / Escape / Up …) を送れる。ダイアログはテキストでは答えられないため

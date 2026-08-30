@@ -72,6 +72,9 @@ workspaces_root = "/workspaces"
 # --remote-control は Remote Control を有効にした「対話セッション」を起こす。
 # サーバモード (claude remote-control サブコマンド) ではない。
 command = "claude --remote-control {name}"
+# 起動時に --continue を足し、その作業ディレクトリの前回の会話を引き継ぐ。
+# 既定は true。毎回まっさらから始めたいなら false。
+continue = true
 
 # 1つのコンテナに全 booth を同居させる構成。
 [targets.denv]
@@ -89,6 +92,7 @@ service = "denv"
 [booths.myproject]
 target = "denv"
 command = "claude --remote-control myproject --add-dir /workspaces/shared"
+continue = false
 ```
 
 どちらの構成でも動きます。`service = "{name}"` なら booth ごとに専用コンテナが対応し、
@@ -99,13 +103,30 @@ command = "claude --remote-control myproject --add-dir /workspaces/shared"
 `command` は文字列（空白で分割）でも文字列配列でも書けます。tmux 側で1つのシェルコマンドに
 連結されるため、引用符を含む複雑なコマンドはラッパースクリプトにしてください。
 
+## 会話の引き継ぎ
+
+`booth open` は既定でコマンドに `--continue` を足します。開き直した booth は、その作業
+ディレクトリで前回していた会話をそのまま引き継ぎます。夜に閉じて朝に開き直しても話の続きから
+始められる、という状態が既定です。
+
+その作業ディレクトリで初めて開くときは引き継ぐ会話がなく、`claude --continue` は起動せずに
+終了します。booth は起動直後にセッションが死んだことを見て、`--continue` 無しで開き直し、
+`No conversation to continue; started a fresh one.` と報告します。新規プロジェクトでも
+既定のままで困りません。
+
+都度変えたいときは `booth open <name> --no-continue`（設定で切っている場合は `--continue`）、
+booth ごとなら `[booths.<name>].continue`、全体なら `[defaults].continue` で指定します。
+`command` に既に `-c` / `--continue` / `-r` / `--resume` が書かれていれば booth は二重には
+足しません。なお `booth` 自身の `-c` は `--config` なので、引き継ぎの指定は `--continue` と
+省略せずに書きます。
+
 ## コマンド
 
 | コマンド | 説明 |
 | --- | --- |
 | `booth init [--force]` | `booth.toml` の雛形をカレントに書き出す |
 | `booth targets` | 設定済みターゲットの一覧 |
-| `booth open <name> [--restart] [--no-wait] [--ready-timeout s]` | tmux セッションを作り、実際に使える状態になるまで待つ |
+| `booth open <name> [--restart] [--no-continue] [--no-wait] [--ready-timeout s]` | tmux セッションを作り、実際に使える状態になるまで待つ |
 | `booth ls [--target t]` | セッション一覧を状態付きで表示 |
 | `booth status <name> [--json] [--pane n] [--wait-for settled]` | 状態を報告し、状態に対応する終了コードで終わる |
 | `booth send <name> <text...> [--no-wait] [-w 秒] [--pane n] [-f]` | 1行送り、ターンの完了まで待つ。人の判断が要る状態になったらそこで止める |

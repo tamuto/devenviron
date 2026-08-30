@@ -23,9 +23,18 @@ export interface Target {
 export interface Booth {
   name: string;
   target: Target;
-  /** tmux に渡す argv。{name} / {workdir} は展開済み。 */
+  /** tmux に渡す argv。{name} / {workdir} は展開済み。--continue はまだ付いていない。 */
   command: string[];
   workdir: string;
+  /** 起動時に前回の会話を引き継ぐか。 */
+  continueSession: boolean;
+}
+
+/** 実際に tmux へ渡す argv と、それが会話の引き継ぎ付きかどうか。 */
+export interface Launch {
+  command: string[];
+  /** --continue を足した場合だけ true。初回起動の取りこぼしを拾うのに使う。 */
+  resuming: boolean;
 }
 
 export interface Config {
@@ -33,6 +42,7 @@ export interface Config {
   workspacesRoot: string;
   defaultTarget?: string;
   defaultCommand: string[];
+  defaultContinue: boolean;
   targets: Map<string, Target>;
   booths: Map<string, BoothSpec>;
 }
@@ -41,10 +51,15 @@ interface BoothSpec {
   target?: string;
   command?: string[];
   workdir?: string;
+  continue?: boolean;
 }
 
 const DEFAULT_WORKSPACES_ROOT = '/workspaces';
 const DEFAULT_COMMAND = ['claude', '--remote-control', '{name}'];
+const DEFAULT_CONTINUE = true;
+
+/** 既にコマンド側で会話の引き継ぎを指定していれば、booth は重ねて足さない。 */
+const CONTINUE_FLAGS = new Set(['-c', '--continue', '-r', '--resume']);
 
 export class ConfigError extends Error {}
 
@@ -127,6 +142,7 @@ export function loadConfig(explicit?: string): Config {
       target: optionalString(b.target, `[booths.${name}].target`),
       command: optionalCommand(b.command, `[booths.${name}].command`),
       workdir: optionalString(b.workdir, `[booths.${name}].workdir`),
+      continue: optionalBoolean(b.continue, `[booths.${name}].continue`),
     });
   }
 
@@ -142,13 +158,19 @@ export function loadConfig(explicit?: string): Config {
       DEFAULT_WORKSPACES_ROOT,
     defaultTarget: defaultTarget ?? (targets.size === 1 ? [...targets.keys()][0] : undefined),
     defaultCommand: optionalCommand(defaults.command, '[defaults].command') ?? DEFAULT_COMMAND,
+    defaultContinue: optionalBoolean(defaults.continue, '[defaults].continue') ?? DEFAULT_CONTINUE,
     targets,
     booths,
   };
 }
 
 /** booth 名（= フォルダ名 = tmux セッション名）を解決する。 */
-export function resolveBooth(config: Config, name: string, targetOverride?: string): Booth {
+export function resolveBooth(
+  config: Config,
+  name: string,
+  targetOverride?: string,
+  continueOverride?: boolean
+): Booth {
   validateName(name);
 
   const spec = config.booths.get(name) ?? {};
@@ -169,7 +191,25 @@ export function resolveBooth(config: Config, name: string, targetOverride?: stri
     arg.replaceAll('{name}', name).replaceAll('{workdir}', workdir)
   );
 
-  return { name, target: withService(target, name), command, workdir };
+  const continueSession = continueOverride ?? spec.continue ?? config.defaultContinue;
+
+  return { name, target: withService(target, name), command, workdir, continueSession };
+}
+
+/**
+ * tmux に渡す argv を組み立てる。
+ * --continue はプログラム名の直後に入れる。末尾に足すと、コマンドが最後に
+ * プロンプトを取る書き方をしていたときにその引数として食われてしまう。
+ */
+export function launchCommand(booth: Booth): Launch {
+  const [executable, ...rest] = booth.command;
+  if (!booth.continueSession || executable === undefined) {
+    return { command: booth.command, resuming: false };
+  }
+  if (booth.command.some((arg) => CONTINUE_FLAGS.has(arg))) {
+    return { command: booth.command, resuming: false };
+  }
+  return { command: [executable, '--continue', ...rest], resuming: true };
 }
 
 /** service テンプレートを booth 名で埋めた実行先を返す。 */
@@ -208,6 +248,12 @@ function requireString(value: unknown, label: string): string {
   const s = optionalString(value, label);
   if (s === undefined) throw new ConfigError(`${label} is required.`);
   return s;
+}
+
+function optionalBoolean(value: unknown, label: string): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'boolean') throw new ConfigError(`${label} must be a boolean.`);
+  return value;
 }
 
 function optionalString(value: unknown, label: string): string | undefined {

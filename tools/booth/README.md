@@ -73,6 +73,9 @@ workspaces_root = "/workspaces"
 # --remote-control starts an interactive session with Remote Control enabled,
 # not the server mode (the `claude remote-control` subcommand).
 command = "claude --remote-control {name}"
+# Add --continue at startup so the booth picks up the previous conversation in its
+# workdir. Defaults to true; set it to false to always start fresh.
+continue = true
 
 # One shared container hosting every booth.
 [targets.denv]
@@ -89,6 +92,7 @@ service = "denv"
 [booths.myproject]
 target = "denv"
 command = "claude --remote-control myproject --add-dir /workspaces/shared"
+continue = false
 ```
 
 Both container layouts work. With `service = "{name}"` each booth gets its own container, and
@@ -100,13 +104,30 @@ tmux are skipped). With a fixed service name, every booth is a tmux session in o
 arguments back into one shell command, so avoid embedded quoting and write a wrapper
 script if you need it.
 
+## Continuing the previous conversation
+
+By default `booth open` starts the command with `--continue`, so reopening a booth picks up
+the conversation it had in that workdir instead of starting from nothing — closing a booth
+for the night and opening it again in the morning keeps the thread.
+
+The first time a workdir is opened there is nothing to continue, and `claude --continue`
+exits instead of starting. booth notices that the session died on startup and reopens it
+without `--continue`, reporting `No conversation to continue; started a fresh one.` So the
+default is safe on a brand new project.
+
+Override it per run with `booth open <name> --no-continue` (or `--continue` when the config
+turns it off), per booth with `[booths.<name>].continue`, or globally with
+`[defaults].continue`. booth never adds the flag twice: if `command` already contains `-c`,
+`--continue`, `-r` or `--resume`, it is left alone. Note that `-c` on the `booth` command
+itself is `--config`; the resume switch is spelled out as `--continue`.
+
 ## Commands
 
 | Command | Description |
 | --- | --- |
 | `booth init [--force]` | Write a sample `booth.toml` into the current directory |
 | `booth targets` | List the targets defined in the config |
-| `booth open <name> [--restart] [--no-wait] [--ready-timeout s]` | Create the tmux session, start the command, and wait until it is actually usable |
+| `booth open <name> [--restart] [--no-continue] [--no-wait] [--ready-timeout s]` | Create the tmux session, start the command, and wait until it is actually usable |
 | `booth ls [--target t]` | List sessions with their state |
 | `booth status <name> [--json] [--pane n] [--wait-for settled]` | Report the state and exit with a code that matches it |
 | `booth send <name> <text...> [--no-wait] [-w seconds] [--pane n] [-f]` | Send a line, then wait for the turn to finish — or stop as soon as the session needs you |

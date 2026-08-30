@@ -12,6 +12,10 @@ workspaces_root = "/workspaces"
 # --remote-control は「Remote Control を有効にした対話セッション」を起こす。
 # サーバモード (claude remote-control サブコマンド) ではない点に注意。
 command = "claude --remote-control {name}"
+# 起動時に --continue を足して、その作業ディレクトリの前回の会話を引き継ぐ。
+# 既定は true。会話の記録がまだ無い初回は、booth が自動で引き継ぎ無しに切り替える。
+# 毎回まっさらから始めたいなら false にする (booth open --continue で都度上書きできる)。
+continue = true
 
 # 1つのコンテナに全 booth を同居させる構成 (denv-cc-remote の既定)。
 # service は compose のサービス名。
@@ -30,3 +34,4 @@ service = "denv"
 # [booths.myproject]
 # target = "denv"
 # command = "claude --remote-control myproject --add-dir /workspaces/shared"
+# continue = false
