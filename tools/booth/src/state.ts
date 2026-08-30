@@ -189,6 +189,28 @@ export function waitForSettled(booth: Booth, options: WaitOptions): WaitResult {
   }
 }
 
+/**
+ * 起動直後の生死を見る。ready になった時点で真、セッションが消えた時点で偽を返し、
+ * どちらでもないまま graceMs を過ぎたら真とみなす (信頼ダイアログ待ちなどはここに来る)。
+ *
+ * 単純な sleep では足りない。`claude --continue` は会話の記録が無いと数秒後に
+ * 終了するので、そこまで見届けないと「起動した」と誤って報告してしまう。
+ */
+export function survivedLaunch(booth: Booth, graceMs: number, pollMs = 500): boolean {
+  const deadline = Date.now() + graceMs;
+  for (;;) {
+    // 先に待つ。作った直後は、死ぬコマンドでもまだセッションが残っている。
+    sleepSync(Math.min(pollMs, Math.max(0, deadline - Date.now())));
+    if (!hasSession(booth.target, booth.name)) return false;
+
+    // ready まで来ていれば起動は済んでいる。unknown は claude 以外を起こしていて
+    // 状態を問い合わせられない場合で、待っても分かることは増えない。
+    const phase = inspectBooth(booth).phase;
+    if (phase === 'ready' || phase === 'unknown') return true;
+    if (Date.now() >= deadline) return true;
+  }
+}
+
 /** phase 'starting' を抜けて ready になるまで待つ。open の後始末に使う。 */
 export function waitForReady(booth: Booth, timeoutMs: number, pollMs = 1000): BoothState {
   const deadline = Date.now() + timeoutMs;

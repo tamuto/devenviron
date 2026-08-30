@@ -29,6 +29,11 @@ booth close <name>               # wait for the turn, send /exit, then kill the 
 A booth name is a folder under `workspaces_root` and doubles as the tmux session name, so
 `booth open api` runs in `/workspaces/api` as session `api`.
 
+`open` resumes the booth's previous conversation by default (it adds `--continue`), so reopening
+a booth continues where it left off rather than starting from nothing — the session it resumes
+may already know things you did not tell it. Pass `--no-continue` when the work needs a clean
+slate. On a workdir that has no conversation yet, booth falls back to a fresh one on its own.
+
 `open` does not report success just because tmux came up — it waits until the session is really
 usable. `close` waits for the current turn because a `/exit` typed mid-turn is dropped.
 `close --force` skips that wait and kills the session, losing whatever the turn was doing.

@@ -9,6 +9,7 @@ import {
   Config,
   ConfigError,
   hasServiceTemplate,
+  launchCommand,
   loadConfig,
   resolveBooth,
   withServiceName,
@@ -23,6 +24,7 @@ import {
   inspectBooth,
   listAgents,
   statusByWorkdir,
+  survivedLaunch,
   waitForReady,
   waitForSettled,
   type AgentRecord,
@@ -39,10 +41,12 @@ import {
   sendKeys,
   sendText,
   sleepSync,
-  survivedStartup,
 } from './session.js';
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
+
+/** 起動を見届ける時間。ready になれば待たずに抜けるので、実際にはここまで掛からない。 */
+const STARTUP_GRACE_MS = 8000;
 
 /** init が書き出す雛形。パッケージ同梱の booth.example.toml がそのまま原本。 */
 const SAMPLE_CONFIG_PATH = path.join(
@@ -81,50 +85,80 @@ program
   .argument('<name>', 'Booth name (folder under workspaces_root, used as the session name)')
   .option('-t, --target <target>', 'Target to open the booth on')
   .option('--restart', 'Kill an existing session with the same name first')
+  .option('--continue', 'Resume the previous conversation in the workdir (the default)')
+  .option('--no-continue', 'Start a fresh conversation instead of resuming')
   .option('--no-wait', 'Return as soon as the tmux session exists')
   .option('--ready-timeout <seconds>', 'How long to wait for the session to become usable', '60')
-  .action((name: string, options: { target?: string; restart?: boolean; wait: boolean; readyTimeout: string }) => {
-    run(() => {
-      const booth = resolveBooth(config(), name, options.target);
+  .action(
+    (
+      name: string,
+      options: {
+        target?: string;
+        restart?: boolean;
+        continue?: boolean;
+        wait: boolean;
+        readyTimeout: string;
+      }
+    ) => {
+      run(() => {
+        const booth = resolveBooth(config(), name, options.target, options.continue);
 
-      if (hasSession(booth.target, booth.name)) {
-        if (!options.restart) {
-          fail(`Booth '${booth.name}' is already open on '${booth.target.name}'. Use --restart to recreate it.`);
+        if (hasSession(booth.target, booth.name)) {
+          if (!options.restart) {
+            fail(`Booth '${booth.name}' is already open on '${booth.target.name}'. Use --restart to recreate it.`);
+          }
+          killSession(booth.target, booth.name);
+          console.log(`${chalk.yellow('↺')} Killed existing session '${booth.name}'`);
         }
-        killSession(booth.target, booth.name);
-        console.log(`${chalk.yellow('↺')} Killed existing session '${booth.name}'`);
-      }
 
-      if (!directoryExists(booth.target, booth.workdir)) {
-        fail(`Workdir '${booth.workdir}' does not exist in service '${booth.target.service}'.`);
-      }
+        if (!directoryExists(booth.target, booth.workdir)) {
+          fail(`Workdir '${booth.workdir}' does not exist in service '${booth.target.service}'.`);
+        }
 
-      createSession(booth);
+        const launch = launchCommand(booth);
+        let command = launch.command;
+        createSession(booth, command);
+        let started = survivedLaunch(booth, STARTUP_GRACE_MS);
 
-      if (!survivedStartup(booth.target, booth.name)) {
-        fail(
-          `Booth '${booth.name}' exited immediately. Check that \`${booth.command[0]}\` runs in ` +
-            `'${booth.workdir}' on service '${booth.target.service}'.`
+        // その workdir にまだ会話の記録が無いと、claude --continue は
+        // 「No conversation found to continue」と言って終了する。初回だけの話なので、
+        // 引き継ぎ無しで開き直す。それでも死ぬなら本当の起動失敗。
+        let fellBack = false;
+        if (!started && launch.resuming) {
+          command = booth.command;
+          createSession(booth, command);
+          started = survivedLaunch(booth, STARTUP_GRACE_MS);
+          fellBack = started;
+        }
+
+        if (!started) {
+          fail(
+            `Booth '${booth.name}' exited immediately. Check that \`${booth.command[0]}\` runs in ` +
+              `'${booth.workdir}' on service '${booth.target.service}'.`
+          );
+        }
+
+        console.log(
+          `${chalk.green('✔')} Opened ${chalk.bold(booth.name)} on ` +
+            `${booth.target.name} (service ${booth.target.service})`
         );
-      }
+        console.log(`  ${chalk.dim('workdir')} ${booth.workdir}`);
+        console.log(`  ${chalk.dim('command')} ${command.join(' ')}`);
+        if (fellBack) {
+          console.log(chalk.dim('  No conversation to continue; started a fresh one.'));
+        }
 
-      console.log(
-        `${chalk.green('✔')} Opened ${chalk.bold(booth.name)} on ` +
-          `${booth.target.name} (service ${booth.target.service})`
-      );
-      console.log(`  ${chalk.dim('workdir')} ${booth.workdir}`);
-      console.log(`  ${chalk.dim('command')} ${booth.command.join(' ')}`);
+        if (!options.wait) return;
 
-      if (!options.wait) return;
-
-      // tmux セッションが立っただけでは、まだ使えるとは限らない。
-      // ログイン画面や信頼ダイアログで止まっていることがあるため、
-      // セッション記録が現れるまで待って「本当に使える」ことを確かめる。
-      const state = waitForReady(booth, Number(options.readyTimeout) * 1000);
-      reportState(booth, state, { paneOnAttention: true });
-      if (state.phase === 'starting') process.exit(EXIT.blocked);
-    });
-  });
+        // tmux セッションが立っただけでは、まだ使えるとは限らない。
+        // ログイン画面や信頼ダイアログで止まっていることがあるため、
+        // セッション記録が現れるまで待って「本当に使える」ことを確かめる。
+        const state = waitForReady(booth, Number(options.readyTimeout) * 1000);
+        reportState(booth, state, { paneOnAttention: true });
+        if (state.phase === 'starting') process.exit(EXIT.blocked);
+      });
+    }
+  );
 
 program
   .command('ls')

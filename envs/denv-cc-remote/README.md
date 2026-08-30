@@ -241,6 +241,9 @@ service = "denv"
 pnpx @infodb/booth open myproject
 ```
 
+`open` は既定で `--continue` 付きで起動するため、閉じた booth を開き直すと前回の会話の
+続きから始まる。まっさらな状態で始めたいときは `--no-continue` を付ける。
+
 [claude.ai/code](https://claude.ai/code) またはスマートフォンの Claude アプリの
 セッション一覧に現れるので、そこから開く。
 

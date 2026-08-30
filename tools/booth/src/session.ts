@@ -29,8 +29,11 @@ export function directoryExists(target: Target, dir: string): boolean {
   return runExec(target, ['test', '-d', dir]).status === 0;
 }
 
-/** tmux セッションを detached で作り、その中で booth のコマンドを起動する。 */
-export function createSession(booth: Booth): void {
+/**
+ * tmux セッションを detached で作り、その中で booth のコマンドを起動する。
+ * command は launchCommand() が組み立てたものを渡す。
+ */
+export function createSession(booth: Booth, command: string[]): void {
   runTmuxOrThrow(booth.target, [
     'new-session',
     '-d',
@@ -38,17 +41,8 @@ export function createSession(booth: Booth): void {
     booth.name,
     '-c',
     booth.workdir,
-    ...booth.command,
+    ...command,
   ]);
-}
-
-/**
- * 起動直後に死んでいないかを見る。コマンドが見つからない等の失敗は
- * new-session 自体は成功したまま、セッションだけが消える形で現れる。
- */
-export function survivedStartup(target: Target, name: string, graceMs = 500): boolean {
-  sleepSync(graceMs);
-  return hasSession(target, name);
 }
 
 export function listSessions(target: Target): SessionInfo[] {
