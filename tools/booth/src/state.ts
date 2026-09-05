@@ -75,7 +75,7 @@ export function listAgents(target: Target): AgentRecord[] | undefined {
 }
 
 export function inspectBooth(booth: Booth): BoothState {
-  if (!hasSession(booth.target, booth.name)) return { phase: 'absent' };
+  if (!hasSession(booth.target, booth.session)) return { phase: 'absent' };
 
   // 状態を報告できるのは claude を起こしている booth だけ。それ以外を
   // セッション一覧に照らすと「まだ起動していない claude」と区別が付かず、
@@ -190,8 +190,9 @@ export function waitForSettled(booth: Booth, options: WaitOptions): WaitResult {
 }
 
 /**
- * 起動直後の生死を見る。ready になった時点で真、セッションが消えた時点で偽を返し、
- * どちらでもないまま graceMs を過ぎたら真とみなす (信頼ダイアログ待ちなどはここに来る)。
+ * 起動直後の生死を見る。対話ループに入った時点で真、セッションが消えた時点で偽を
+ * 返し、どちらでもないまま graceMs を過ぎたら真とみなす (信頼ダイアログ待ちなどは
+ * ここに来る)。
  *
  * 単純な sleep では足りない。`claude --continue` は会話の記録が無いと数秒後に
  * 終了するので、そこまで見届けないと「起動した」と誤って報告してしまう。
@@ -201,12 +202,19 @@ export function survivedLaunch(booth: Booth, graceMs: number, pollMs = 500): boo
   for (;;) {
     // 先に待つ。作った直後は、死ぬコマンドでもまだセッションが残っている。
     sleepSync(Math.min(pollMs, Math.max(0, deadline - Date.now())));
-    if (!hasSession(booth.target, booth.name)) return false;
+    if (!hasSession(booth.target, booth.session)) return false;
 
-    // ready まで来ていれば起動は済んでいる。unknown は claude 以外を起こしていて
-    // 状態を問い合わせられない場合で、待っても分かることは増えない。
-    const phase = inspectBooth(booth).phase;
-    if (phase === 'ready' || phase === 'unknown') return true;
+    const state = inspectBooth(booth);
+    if (state.phase === 'absent') return false;
+
+    // ready だけでは足りない。claude は起動の途中で agents に名乗るので、
+    // --continue が「会話が無い」と分かって終了する直前にも ready に見える。
+    // status が付くのは対話ループまで到達した後なので、そこまで待つ。
+    if (state.phase === 'ready' && state.status !== undefined) return true;
+
+    // unknown は claude 以外を起こしていて状態を問い合わせられない場合。
+    // 待っても分かることは増えない。
+    if (state.phase === 'unknown') return true;
     if (Date.now() >= deadline) return true;
   }
 }
@@ -222,7 +230,7 @@ export function waitForReady(booth: Booth, timeoutMs: number, pollMs = 1000): Bo
   }
 }
 
-/** ls 用。booth 名から workdir を引いて status を突き合わせる。 */
+/** ls 用。cwd を鍵にして status を引けるようにする。 */
 export function statusByWorkdir(agents: AgentRecord[] | undefined): Map<string, AgentRecord> {
   const map = new Map<string, AgentRecord>();
   for (const agent of agents ?? []) map.set(agent.cwd, agent);

@@ -45,9 +45,14 @@ booth close myproject
 
 ## 名前の扱い
 
-booth 名は `workspaces_root` 直下のフォルダ名であり、そのまま tmux のセッション名になります。
+booth 名は `workspaces_root` 直下のフォルダ名です。
 `booth open myproject` なら `/workspaces/myproject` で `myproject` というセッションを起こします。
 フォルダ名はワークスペース内で一意なので、セッション名の衝突も起きません。
+
+tmux はセッション名に `.` と `:` を使えず、渡しても黙って `_` に置き換えます。そのため
+`repo.branch` のような booth 名 (git worktree でよく使う形) は、tmux 側では
+`repo_branch` という名前になります。booth のコマンドには元の名前をそのまま渡してください。
+`ls` も元の名前で表示します。
 
 ## 設定
 

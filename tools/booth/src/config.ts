@@ -19,9 +19,11 @@ export interface Target {
   project?: string;
 }
 
-/** tmux セッション1つ分の定義。セッション名 = booth 名 = フォルダ名。 */
+/** tmux セッション1つ分の定義。booth 名 = フォルダ名。tmux 側の名前は session。 */
 export interface Booth {
   name: string;
+  /** tmux に渡すセッション名。booth 名から `.` と `:` を落としたもの。 */
+  session: string;
   target: Target;
   /** tmux に渡す argv。{name} / {workdir} は展開済み。--continue はまだ付いていない。 */
   command: string[];
@@ -60,6 +62,9 @@ const DEFAULT_CONTINUE = true;
 
 /** 既にコマンド側で会話の引き継ぎを指定していれば、booth は重ねて足さない。 */
 const CONTINUE_FLAGS = new Set(['-c', '--continue', '-r', '--resume']);
+
+/** tmux がセッション名に許さない文字。ウィンドウとペインの区切りに使われている。 */
+const TMUX_UNSAFE = /[.:]/g;
 
 export class ConfigError extends Error {}
 
@@ -164,7 +169,7 @@ export function loadConfig(explicit?: string): Config {
   };
 }
 
-/** booth 名（= フォルダ名 = tmux セッション名）を解決する。 */
+/** booth 名（= フォルダ名）を解決する。tmux 側の名前は session に入る。 */
 export function resolveBooth(
   config: Config,
   name: string,
@@ -193,7 +198,26 @@ export function resolveBooth(
 
   const continueSession = continueOverride ?? spec.continue ?? config.defaultContinue;
 
-  return { name, target: withService(target, name), command, workdir, continueSession };
+  return {
+    name,
+    session: sessionName(name),
+    target: withService(target, name),
+    command,
+    workdir,
+    continueSession,
+  };
+}
+
+/**
+ * booth 名を tmux のセッション名に直す。
+ *
+ * tmux はセッション名の `.` と `:` を黙って `_` に置き換えて作る。さらに `-t` の
+ * 対象指定では `.` をペイン、`:` をウィンドウの区切りとして読むため、booth 名を
+ * そのまま渡すと「セッションは出来ているのに has-session が can't find pane で
+ * 落ちる」という形で食い違う。git worktree を repo.branch で切ると必ず踏む。
+ */
+export function sessionName(name: string): string {
+  return name.replace(TMUX_UNSAFE, '_');
 }
 
 /**
@@ -228,7 +252,7 @@ export function hasServiceTemplate(target: Target): boolean {
   return target.serviceTemplate.includes('{name}');
 }
 
-/** tmux セッション名として安全で、かつフォルダ名としても妥当な形だけ通す。 */
+/** フォルダ名として妥当な形だけ通す。tmux に渡す形は sessionName() が作る。 */
 export function validateName(name: string): void {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
     throw new ConfigError(

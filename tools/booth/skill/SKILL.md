@@ -26,8 +26,9 @@ booth send <name> "<prompt>"     # send a prompt and wait for the turn to finish
 booth close <name>               # wait for the turn, send /exit, then kill the session
 ```
 
-A booth name is a folder under `workspaces_root` and doubles as the tmux session name, so
-`booth open api` runs in `/workspaces/api` as session `api`.
+A booth name is a folder under `workspaces_root`, so `booth open api` runs in `/workspaces/api`.
+A name may contain `.` (e.g. a `repo.branch` worktree); tmux stores that session as
+`repo_branch`, but every booth command still takes the booth name.
 
 `open` resumes the booth's previous conversation by default (it adds `--continue`), so reopening
 a booth continues where it left off rather than starting from nothing — the session it resumes

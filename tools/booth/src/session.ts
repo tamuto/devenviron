@@ -4,7 +4,10 @@ import { runExec, runTmux, runTmuxOrThrow } from './docker.js';
 export interface SessionInfo {
   target: string;
   service: string;
+  /** tmux が持っているセッション名。booth 名とは `.` の扱いで食い違いうる。 */
   name: string;
+  /** ペインの作業ディレクトリ。booth を名前ではなく場所で引き当てるのに使う。 */
+  workdir: string;
   created: Date;
   windows: number;
   attached: boolean;
@@ -12,16 +15,19 @@ export interface SessionInfo {
 }
 
 const LIST_FORMAT = '#{session_name}\t#{session_created}\t#{session_windows}\t#{session_attached}';
-const PANE_FORMAT = '#{session_name}\t#{pane_current_command}';
+const PANE_FORMAT = '#{session_name}\t#{pane_current_path}\t#{pane_current_command}';
 
-/** ペインを対象に取る tmux コマンド用のターゲット指定。`=` は完全一致の意味。 */
-function paneTarget(name: string): string {
-  return `=${name}:`;
+/**
+ * tmux のターゲット指定。以下すべて booth 名ではなく Booth.session を渡すこと。
+ * `=` は完全一致、末尾の `:` はセッション内の現在のウィンドウという意味。
+ */
+function paneTarget(session: string): string {
+  return `=${session}:`;
 }
 
-export function hasSession(target: Target, name: string): boolean {
+export function hasSession(target: Target, session: string): boolean {
   // has-session はセッションが無いと exit 1 になる。tmux サーバ未起動でも同様。
-  return runTmux(target, ['has-session', '-t', `=${name}`]).status === 0;
+  return runTmux(target, ['has-session', '-t', `=${session}`]).status === 0;
 }
 
 /** tmux の -c は存在しないディレクトリを渡されると黙って無視されるので先に確かめる。 */
@@ -38,7 +44,7 @@ export function createSession(booth: Booth, command: string[]): void {
     'new-session',
     '-d',
     '-s',
-    booth.name,
+    booth.session,
     '-c',
     booth.workdir,
     ...command,
@@ -50,52 +56,56 @@ export function listSessions(target: Target): SessionInfo[] {
   // セッションが1つも無いときの `no server running` は空リストとして扱う。
   if (listed.status !== 0) return [];
 
-  const panes = new Map<string, string>();
+  const panes = new Map<string, { workdir: string; command: string }>();
   const paneResult = runTmux(target, ['list-panes', '-a', '-F', PANE_FORMAT]);
   if (paneResult.status === 0) {
     for (const line of splitLines(paneResult.stdout)) {
-      const [session, command] = line.split('\t');
-      if (session && command && !panes.has(session)) panes.set(session, command);
+      const [session, workdir, command] = line.split('\t');
+      if (session && command && !panes.has(session)) {
+        panes.set(session, { workdir: workdir ?? '', command });
+      }
     }
   }
 
   return splitLines(listed.stdout).map((line) => {
     const [name, created, windows, attached] = line.split('\t');
+    const pane = panes.get(name ?? '');
     return {
       target: target.name,
       service: target.service,
       name: name ?? '',
+      workdir: pane?.workdir ?? '',
       created: new Date(Number(created) * 1000),
       windows: Number(windows) || 0,
       attached: attached === '1',
-      command: panes.get(name ?? '') ?? '-',
+      command: pane?.command ?? '-',
     };
   });
 }
 
 /** テキストを1行として送る。キー名として解釈されないよう -l を使う。 */
-export function sendText(target: Target, name: string, text: string, enter: boolean, delayMs: number): void {
-  runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(name), '-l', '--', text]);
+export function sendText(target: Target, session: string, text: string, enter: boolean, delayMs: number): void {
+  runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(session), '-l', '--', text]);
   if (!enter) return;
   // TUI が入力を取り込む前に Enter が届くと取りこぼすので少し待つ。
   sleepSync(delayMs);
-  runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(name), 'Enter']);
+  runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(session), 'Enter']);
 }
 
 /**
  * tmux のキー名 (Enter, Escape, Up, C-c …) をそのまま送る。
  * ダイアログは選択肢の操作が要るため、テキスト送信では答えられない。
  */
-export function sendKeys(target: Target, name: string, keys: string[]): void {
-  runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(name), ...keys]);
+export function sendKeys(target: Target, session: string, keys: string[]): void {
+  runTmuxOrThrow(target, ['send-keys', '-t', paneTarget(session), ...keys]);
 }
 
-export function capturePane(target: Target, name: string, lines: number): string {
+export function capturePane(target: Target, session: string, lines: number): string {
   const out = runTmuxOrThrow(target, [
     'capture-pane',
     '-p',
     '-t',
-    paneTarget(name),
+    paneTarget(session),
     '-S',
     `-${lines}`,
   ]);
@@ -103,8 +113,8 @@ export function capturePane(target: Target, name: string, lines: number): string
   return `${out.replace(/\s+$/, '')}\n`;
 }
 
-export function killSession(target: Target, name: string): void {
-  runTmuxOrThrow(target, ['kill-session', '-t', `=${name}`]);
+export function killSession(target: Target, session: string): void {
+  runTmuxOrThrow(target, ['kill-session', '-t', `=${session}`]);
 }
 
 export function sleepSync(ms: number): void {
@@ -117,7 +127,7 @@ function splitLines(out: string): string[] {
 }
 
 /** 既に消えているセッションを kill しても失敗にはしない。 */
-export function killSessionSafe(target: Target, name: string): void {
-  if (!hasSession(target, name)) return;
-  killSession(target, name);
+export function killSessionSafe(target: Target, session: string): void {
+  if (!hasSession(target, session)) return;
+  killSession(target, session);
 }
