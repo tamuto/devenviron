@@ -49,7 +49,8 @@ pnpx @infodb/booth open <name>
 - `send` はターンの完了まで待ち、**人の判断が必要な状態になったらそこで止めて報告する**。
   状態は `claude agents --json` から取得しており、終了コードでも区別できる
   (0=完了/待機可、10=処理中、11=判断待ち、12=起動できていない、13=未起動)
-- booth 名は `/workspaces` 直下のフォルダ名であり、そのまま tmux のセッション名になる
+- booth 名は `/workspaces` 直下のフォルダ名。tmux のセッション名では `.` と `:` が `_` に
+  置き換わる (`repo.branch` → `repo_branch`) が、booth のコマンドには元の名前を渡す
 - `open` は既定で `--continue` を足し、その作業ディレクトリの前回の会話を引き継ぐ。
   まっさらから始めたいときは `--no-continue`、設定なら `[defaults].continue = false`
 - 実体は `docker compose exec <service> tmux ...` であり、状態はコンテナ内の tmux が持つ

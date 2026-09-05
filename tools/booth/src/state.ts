@@ -75,7 +75,7 @@ export function listAgents(target: Target): AgentRecord[] | undefined {
 }
 
 export function inspectBooth(booth: Booth): BoothState {
-  if (!hasSession(booth.target, booth.name)) return { phase: 'absent' };
+  if (!hasSession(booth.target, booth.session)) return { phase: 'absent' };
 
   // 状態を報告できるのは claude を起こしている booth だけ。それ以外を
   // セッション一覧に照らすと「まだ起動していない claude」と区別が付かず、
@@ -201,7 +201,7 @@ export function survivedLaunch(booth: Booth, graceMs: number, pollMs = 500): boo
   for (;;) {
     // 先に待つ。作った直後は、死ぬコマンドでもまだセッションが残っている。
     sleepSync(Math.min(pollMs, Math.max(0, deadline - Date.now())));
-    if (!hasSession(booth.target, booth.name)) return false;
+    if (!hasSession(booth.target, booth.session)) return false;
 
     // ready まで来ていれば起動は済んでいる。unknown は claude 以外を起こしていて
     // 状態を問い合わせられない場合で、待っても分かることは増えない。
@@ -222,7 +222,7 @@ export function waitForReady(booth: Booth, timeoutMs: number, pollMs = 1000): Bo
   }
 }
 
-/** ls 用。booth 名から workdir を引いて status を突き合わせる。 */
+/** ls 用。cwd を鍵にして status を引けるようにする。 */
 export function statusByWorkdir(agents: AgentRecord[] | undefined): Map<string, AgentRecord> {
   const map = new Map<string, AgentRecord>();
   for (const agent of agents ?? []) map.set(agent.cwd, agent);

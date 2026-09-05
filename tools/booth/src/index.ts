@@ -12,6 +12,7 @@ import {
   launchCommand,
   loadConfig,
   resolveBooth,
+  sessionName,
   withServiceName,
   type Booth,
   type Target,
@@ -41,6 +42,7 @@ import {
   sendKeys,
   sendText,
   sleepSync,
+  type SessionInfo,
 } from './session.js';
 
 const VERSION = '0.5.0';
@@ -103,11 +105,11 @@ program
       run(() => {
         const booth = resolveBooth(config(), name, options.target, options.continue);
 
-        if (hasSession(booth.target, booth.name)) {
+        if (hasSession(booth.target, booth.session)) {
           if (!options.restart) {
             fail(`Booth '${booth.name}' is already open on '${booth.target.name}'. Use --restart to recreate it.`);
           }
-          killSession(booth.target, booth.name);
+          killSession(booth.target, booth.session);
           console.log(`${chalk.yellow('↺')} Killed existing session '${booth.name}'`);
         }
 
@@ -180,7 +182,8 @@ program
             const byWorkdir = statusByWorkdir(listAgents(t));
             return listSessions(t).map((row) => ({
               ...row,
-              state: describeRow(cfg, row.name, byWorkdir),
+              name: boothNameOf(row),
+              state: describeRow(row.workdir, byWorkdir),
             }));
           });
         } catch (error) {
@@ -263,7 +266,7 @@ program
           process.exit(EXIT.waiting);
         }
 
-        sendText(booth.target, booth.name, text.join(' '), options.enter, Number(options.delay));
+        sendText(booth.target, booth.session, text.join(' '), options.enter, Number(options.delay));
         console.log(`${chalk.green('✔')} Sent to ${chalk.bold(booth.name)}`);
 
         if (!options.wait || before.phase !== 'ready') {
@@ -324,7 +327,7 @@ program
   .action((name: string, keys: string[], options: { target?: string; pane: string }) => {
     run(() => {
       const booth = requireOpen(name, options.target);
-      sendKeys(booth.target, booth.name, keys);
+      sendKeys(booth.target, booth.session, keys);
       console.log(`${chalk.green('✔')} Sent ${keys.join(' ')} to ${chalk.bold(booth.name)}`);
 
       // キー操作は画面を見て次を決めるものなので、少し待ってから結果を返す。
@@ -404,7 +407,7 @@ program
   .action((name: string, options: { target?: string; lines: string }) => {
     run(() => {
       const booth = requireOpen(name, options.target);
-      process.stdout.write(capturePane(booth.target, booth.name, Number(options.lines)));
+      process.stdout.write(capturePane(booth.target, booth.session, Number(options.lines)));
     });
   });
 
@@ -416,7 +419,7 @@ program
   .action((name: string, options: { target?: string }) => {
     run(() => {
       const booth = requireOpen(name, options.target);
-      process.exit(execInteractive(booth.target, ['tmux', 'attach', '-t', `=${booth.name}`]));
+      process.exit(execInteractive(booth.target, ['tmux', 'attach', '-t', `=${booth.session}`]));
     });
   });
 
@@ -458,10 +461,10 @@ program
           }
         }
 
-        sendText(booth.target, booth.name, options.exitCommand, true, 150);
+        sendText(booth.target, booth.session, options.exitCommand, true, 150);
         const deadline = Date.now() + Number(options.wait) * 1000;
         while (Date.now() < deadline) {
-          if (!hasSession(booth.target, booth.name)) {
+          if (!hasSession(booth.target, booth.session)) {
             console.log(`${chalk.green('✔')} Closed ${chalk.bold(booth.name)} (exited on '${options.exitCommand}')`);
             return;
           }
@@ -470,7 +473,7 @@ program
         console.log(chalk.yellow(`⚠ '${options.exitCommand}' did not end the session within ${options.wait}s; killing it.`));
       }
 
-      killSessionSafe(booth.target, booth.name);
+      killSessionSafe(booth.target, booth.session);
       console.log(`${chalk.green('✔')} Closed ${chalk.bold(booth.name)}`);
     });
   });
@@ -503,7 +506,7 @@ function config(): Config {
 /** 開いていない booth に send/logs/attach しても意味がないので先に弾く。 */
 function requireOpen(name: string, targetOverride?: string): Booth {
   const booth = resolveBooth(config(), name, targetOverride);
-  if (!hasSession(booth.target, booth.name)) {
+  if (!hasSession(booth.target, booth.session)) {
     console.error(
       `${chalk.red('✖')} Booth '${booth.name}' is not open on '${booth.target.name}'.`
     );
@@ -623,7 +626,7 @@ function printNext(booth: Booth, state: BoothState): void {
 function printPane(booth: Booth, lines: number): void {
   if (lines <= 0) return;
   try {
-    const pane = capturePane(booth.target, booth.name, lines);
+    const pane = capturePane(booth.target, booth.session, lines);
     const tail = pane.split('\n').slice(-lines).join('\n').trimEnd();
     if (tail) console.log(chalk.dim(indent(tail)));
   } catch {
@@ -638,15 +641,24 @@ function indent(text: string): string {
     .join('\n');
 }
 
-/** ls の1行分。status が引けない booth は '-' にする。 */
-function describeRow(cfg: Config, name: string, byWorkdir: Map<string, AgentRecord>): string {
-  let workdir: string;
-  try {
-    workdir = resolveBooth(cfg, name).workdir;
-  } catch {
-    return '-';
-  }
-  const agent = byWorkdir.get(workdir);
+/**
+ * ls に出す名前。tmux は `.` を `_` に置き換えて持っているので、セッション名を
+ * そのまま出すと他の booth コマンドに渡せない名前になる。ペインの作業ディレクトリ
+ * 名が同じ置換でセッション名になるなら、そちらが元の booth 名。
+ */
+function boothNameOf(row: SessionInfo): string {
+  const base = row.workdir ? path.posix.basename(row.workdir) : '';
+  return base && sessionName(base) === row.name ? base : row.name;
+}
+
+/**
+ * ls の1行分。status が引けない booth は '-' にする。
+ * 突き合わせはセッション名ではなくペインの作業ディレクトリで行う。名前から
+ * workdir を組み立てると、tmux に置換された名前や [booths.*].workdir で
+ * 場所を変えた booth を取り逃がす。
+ */
+function describeRow(workdir: string, byWorkdir: Map<string, AgentRecord>): string {
+  const agent = workdir ? byWorkdir.get(workdir) : undefined;
   if (!agent) return '-';
   if (agent.status === 'waiting') return agent.waitingFor ? `waiting(${agent.waitingFor})` : 'waiting';
   return agent.status ?? '-';

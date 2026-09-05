@@ -45,10 +45,13 @@ booth close myproject
 
 ## Naming
 
-A booth name is a folder name under `workspaces_root`, and it is used as-is for the tmux
-session name. `booth open myproject` starts the command in `/workspaces/myproject` as session
-`myproject`. Because folder names are unique within the workspaces root, session names cannot
-collide.
+A booth name is a folder name under `workspaces_root`. `booth open myproject` starts the
+command in `/workspaces/myproject` as session `myproject`. Because folder names are unique
+within the workspaces root, session names cannot collide.
+
+tmux does not allow `.` or `:` in a session name and silently rewrites them to `_`, so a booth
+named `repo.branch` (the usual shape for a git worktree) is `repo_branch` on the tmux side.
+Always pass the booth name to booth's own commands; `ls` reports it that way too.
 
 ## Configuration
 
