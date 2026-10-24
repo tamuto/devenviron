@@ -131,7 +131,7 @@ booth ごとなら `[booths.<name>].continue`、全体なら `[defaults].continu
 | --- | --- |
 | `booth init [--force]` | `booth.toml` の雛形をカレントに書き出す |
 | `booth targets` | 設定済みターゲットの一覧 |
-| `booth open <name> [--restart] [--no-continue] [--no-wait] [--ready-timeout s]` | tmux セッションを作り、実際に使える状態になるまで待つ |
+| `booth open <name> [--restart] [--no-continue] [--no-wait] [-a] [--ready-timeout s]` | tmux セッションを作り、実際に使える状態になるまで待つ（`-a`/`--attach` で起動後そのままアタッチ） |
 | `booth ls [--target t]` | セッション一覧を状態付きで表示 |
 | `booth status <name> [--json] [--pane n] [--wait-for settled]` | 状態を報告し、状態に対応する終了コードで終わる |
 | `booth send <name> <text...> [--no-wait] [-w 秒] [--pane n] [-f]` | 1行送り、ターンの完了まで待つ。人の判断が要る状態になったらそこで止める |
@@ -140,7 +140,9 @@ booth ごとなら `[booths.<name>].continue`、全体なら `[defaults].continu
 | `booth close <name> [--settle s] [--wait s] [--force]` | ターンの完了を待ち、`/exit` を送ってから落とす |
 
 `open` は、生きているセッションがあれば `--restart` なしでは上書きせず、作業ディレクトリの
-存在をコンテナ内で確認し、起動直後にコマンドが死んだ場合は成功と報告せずエラーにします。
+存在をコンテナ内で確認し、起動直後にコマンドが死んだ場合は成功と報告せずエラーにします。`--attach` を付けると、
+コマンドの起動を確認した時点で ready を待たずに端末を渡すので、ログイン画面や信頼ダイアログに
+その場で答えられます。セッションが既に開いていれば（`--restart` なしなら）そこにアタッチします。
 
 ## 状態とフィードバック
 
