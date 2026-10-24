@@ -130,7 +130,7 @@ itself is `--config`; the resume switch is spelled out as `--continue`.
 | --- | --- |
 | `booth init [--force]` | Write a sample `booth.toml` into the current directory |
 | `booth targets` | List the targets defined in the config |
-| `booth open <name> [--restart] [--no-continue] [--no-wait] [--ready-timeout s]` | Create the tmux session, start the command, and wait until it is actually usable |
+| `booth open <name> [--restart] [--no-continue] [--no-wait] [-a] [--ready-timeout s]` | Create the tmux session, start the command, and wait until it is actually usable (`-a`/`--attach`: attach right after it starts) |
 | `booth ls [--target t]` | List sessions with their state |
 | `booth status <name> [--json] [--pane n] [--wait-for settled]` | Report the state and exit with a code that matches it |
 | `booth send <name> <text...> [--no-wait] [-w seconds] [--pane n] [-f]` | Send a line, then wait for the turn to finish — or stop as soon as the session needs you |
@@ -140,7 +140,10 @@ itself is `--config`; the resume switch is spelled out as `--continue`.
 
 `open` refuses to reuse a live session unless `--restart` is given, checks that the workdir
 exists in the container, and fails loudly if the command dies during startup instead of
-reporting a session that is already gone.
+reporting a session that is already gone. With `--attach` it hands the terminal over as soon as
+the command has started, without waiting for it to become ready, so a login screen or trust
+dialog can be answered on the spot; if the session is already open (and `--restart` is not
+given) it simply attaches to it.
 
 ## States and feedback
 
