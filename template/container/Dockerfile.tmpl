@@ -31,6 +31,8 @@ ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 # lsb-release は次の層の lsb_release で使う。
 # software-properties-common の依存で入ってはいるが、暗黙依存にはしない。
 # unzip も同様に zip の Recommends で入るだけのため、明示的に指定する。
+# libatomic1 は node(v26以降)の実行に要る。build-essential 経由で入ってはいるが、
+# 暗黙依存にはしない(無いと volta install pnpm が失敗する)。
 # apt lists はこの層で消しておく。後段で消してもこの層には残ってしまうため。
 #
 # ベースイメージ(slim)は最小構成であり、開発で当然に使うコマンドが入っていない。
@@ -51,6 +53,7 @@ ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 #   DBクライアント  : default-mysql-client postgresql-client
 #   その他          : software-properties-common gnupg sudo
 #                     ffmpeg sox jq gettext-base lsb-release ca-certificates
+#                     libatomic1
 #
 # net-tools (netstat / ifconfig) は非推奨だが、慣れの問題で残している。
 # 現行の iproute2 (ip / ss) を併せて入れ、どちらでも調べられる状態にする。
@@ -77,7 +80,7 @@ RUN apt-get update && apt-get install -y \
     vim-tiny nano \
     tree ripgrep tmux bash-completion shellcheck \
     software-properties-common gnupg sudo default-mysql-client postgresql-client \
-    ffmpeg sox jq gettext-base lsb-release ca-certificates \
+    ffmpeg sox jq gettext-base lsb-release ca-certificates libatomic1 \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 信頼ストアへ追加する証明書。詳細と削除の判断基準は docs/certificates.md を参照。
