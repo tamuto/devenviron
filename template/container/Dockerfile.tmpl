@@ -6,6 +6,8 @@ ARG DENV_REVISION=unknown
 ARG DENV_CREATED=unknown
 ENV DENV_BASEIMG="{{BASEIMG}}"
 
+ENV LANG=C.UTF-8
+
 # 対話プロンプトでビルドが止まらないようにする。
 # ARGにしているのはビルド時のみ有効にするため。ENVだと実行時にも残り、
 # コンテナ内で対話的にapt-getを使ったときに挙動が変わってしまう。
