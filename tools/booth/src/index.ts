@@ -46,7 +46,7 @@ import {
   type SessionInfo,
 } from './session.js';
 
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 
 /** 起動を見届ける時間。使える状態になれば待たずに抜けるので、実際にはここまで掛からない。 */
 const STARTUP_GRACE_MS = 8000;
