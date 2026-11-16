@@ -113,6 +113,41 @@ export function diagnoseBlocked(booth: Booth): 'login' | 'trust' | undefined {
   return undefined;
 }
 
+/**
+ * `--continue` で引き継げる会話があり得るかを起動前に判定する。
+ *
+ * 起動してから死んだかどうかで判断するだけでは足りない。未承認のフォルダでは
+ * claude は会話を探す前に信頼ダイアログを出して入力を待つため、起動直後には
+ * 死なない。人が承認した後に「No conversation found to continue」で終了し、
+ * tmux セッションごと消えてしまう。
+ *
+ * 承認済みなら従来どおり起動後のフォールバックに任せる。未承認でも、会話の
+ * 記録があるなら (~/.claude/projects は共有されうる) 承認後に引き継げるので
+ * --continue を残す。判定できないときも残す側に倒す。
+ */
+export function canContinue(booth: Booth): boolean {
+  const config = readClaudeConfig(booth.target);
+  if (config === undefined) return true;
+  if (config.projects?.[booth.workdir]?.hasTrustDialogAccepted === true) return true;
+  return hasConversation(booth.target, booth.workdir) !== false;
+}
+
+/** 会話記録のディレクトリ名 (workdir の英数字以外を `-` にしたもの) はこの長さを超えると切り詰められる。 */
+const MAX_PROJECT_DIR_LENGTH = 200;
+
+/**
+ * workdir に会話の記録 (*.jsonl) があるか。長いパスは claude がハッシュを
+ * 付けて切り詰めるので名前を再現できず、undefined (不明) を返す。
+ */
+function hasConversation(target: Target, workdir: string): boolean | undefined {
+  const encoded = workdir.replace(/[^a-zA-Z0-9]/g, '-');
+  if (encoded.length > MAX_PROJECT_DIR_LENGTH) return undefined;
+  const dir = `/root/.claude/projects/${encoded}`;
+  // glob を使うためだけに sh を挟む。パスは引数で渡し、文字列に埋め込まない。
+  const result = runExec(target, ['sh', '-c', 'ls -- "$1"/*.jsonl >/dev/null 2>&1', 'sh', dir]);
+  return result.status === 0;
+}
+
 interface ClaudeConfig {
   oauthAccount?: unknown;
   projects?: Record<string, { hasTrustDialogAccepted?: boolean } | undefined>;

@@ -119,6 +119,11 @@ continue = false
 `No conversation to continue; started a fresh one.` と報告します。新規プロジェクトでも
 既定のままで困りません。
 
+ただし未承認のフォルダでは、claude は会話を探す前に信頼ダイアログを出して待つため、起動直後
+には死にません。承認した直後に終了し、セッションごと消えてしまいます。これを避けるため booth
+は起動前に `~/.claude.json` の承認状態と `~/.claude/projects/` の会話記録を確かめ、未承認で
+記録も無ければ最初から `--continue` を付けずに起動します（報告は同じ文言です）。
+
 都度変えたいときは `booth open <name> --no-continue`（設定で切っている場合は `--continue`）、
 booth ごとなら `[booths.<name>].continue`、全体なら `[defaults].continue` で指定します。
 `command` に既に `-c` / `--continue` / `-r` / `--resume` が書かれていれば booth は二重には

@@ -20,6 +20,7 @@ import {
 import { DockerError, execInteractive, listRunningServices } from './docker.js';
 import {
   EXIT,
+  canContinue,
   describe,
   exitCodeFor,
   inspectBooth,
@@ -124,7 +125,14 @@ program
           fail(`Workdir '${booth.workdir}' does not exist in service '${booth.target.service}'.`);
         }
 
-        const launch = launchCommand(booth);
+        let launch = launchCommand(booth);
+        // 未承認で会話も無いフォルダに --continue を付けると、信頼ダイアログで
+        // 承認した直後に終了してしまう。下の起動後フォールバックでは拾えない。
+        let skippedContinue = false;
+        if (launch.resuming && !canContinue(booth)) {
+          launch = { command: booth.command, resuming: false };
+          skippedContinue = true;
+        }
         let command = launch.command;
         createSession(booth, command);
         let started = survivedLaunch(booth, STARTUP_GRACE_MS);
@@ -153,7 +161,7 @@ program
         );
         console.log(`  ${chalk.dim('workdir')} ${booth.workdir}`);
         console.log(`  ${chalk.dim('command')} ${command.join(' ')}`);
-        if (fellBack) {
+        if (fellBack || skippedContinue) {
           console.log(chalk.dim('  No conversation to continue; started a fresh one.'));
         }
 

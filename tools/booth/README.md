@@ -118,6 +118,12 @@ exits instead of starting. booth notices that the session died on startup and re
 without `--continue`, reporting `No conversation to continue; started a fresh one.` So the
 default is safe on a brand new project.
 
+An untrusted folder is different: claude shows the trust dialog before it looks for a
+conversation, so it does not die on startup — it exits right after you accept, taking the
+session with it. To avoid that, booth checks `~/.claude.json` and `~/.claude/projects/`
+before launching, and leaves `--continue` off when the folder is neither trusted nor has a
+conversation on record (it reports the same line).
+
 Override it per run with `booth open <name> --no-continue` (or `--continue` when the config
 turns it off), per booth with `[booths.<name>].continue`, or globally with
 `[defaults].continue`. booth never adds the flag twice: if `command` already contains `-c`,
