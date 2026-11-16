@@ -31,8 +31,8 @@ ENV PIP_INDEX_URL="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 
 # lsb-release は次の層の lsb_release で使う。
-# software-properties-common の依存で入ってはいるが、暗黙依存にはしない。
-# unzip も同様に zip の Recommends で入るだけのため、明示的に指定する。
+# software-properties-common は Debian trixie で廃止されたため入れない。
+# unzip は zip の Recommends で入るだけのため、明示的に指定する。
 # apt lists はこの層で消しておく。後段で消してもこの層には残ってしまうため。
 #
 # ベースイメージ(slim)は最小構成であり、開発で当然に使うコマンドが入っていない。
@@ -51,7 +51,7 @@ ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 #   エディタ        : vim-tiny nano
 #   作業支援        : tree ripgrep tmux bash-completion shellcheck
 #   DBクライアント  : default-mysql-client postgresql-client
-#   その他          : software-properties-common gnupg sudo
+#   その他          : gnupg sudo
 #                     ffmpeg sox jq gettext-base lsb-release ca-certificates
 #
 # net-tools (netstat / ifconfig) は非推奨だが、慣れの問題で残している。
@@ -78,8 +78,8 @@ RUN apt-get update && apt-get install -y \
     rsync \
     vim-tiny nano \
     tree ripgrep tmux bash-completion shellcheck \
-    software-properties-common gnupg sudo default-mysql-client postgresql-client \
-    ffmpeg sox jq gettext-base lsb-release ca-certificates \
+    gnupg sudo default-mysql-client postgresql-client \
+    ffmpeg sox jq gettext-base lsb-release ca-certificates libatomic1 \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 信頼ストアへ追加する証明書。詳細と削除の判断基準は docs/certificates.md を参照。

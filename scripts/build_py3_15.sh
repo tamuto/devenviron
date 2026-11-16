@@ -14,7 +14,7 @@ rm -rf build
 mkdir -p build/resources
 # アーキテクチャ依存の取得物はDockerfile側でビルド時に解決するため、
 # ここで置き換えるのはベースイメージだけでよい。
-sed -e "s|{{BASEIMG}}|python:3.14-slim-bookworm|" template/container/Dockerfile.tmpl > build/Dockerfile
+sed -e "s|{{BASEIMG}}|python:3.15-slim-trixie|" template/container/Dockerfile.tmpl > build/Dockerfile
 
 # certs/ のようなサブディレクトリを含むため -r が要る。
 cp -r template/container/resources/* build/resources/
