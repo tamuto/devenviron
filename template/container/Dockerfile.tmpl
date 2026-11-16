@@ -6,6 +6,8 @@ ARG DENV_REVISION=unknown
 ARG DENV_CREATED=unknown
 ENV DENV_BASEIMG="{{BASEIMG}}"
 
+ENV LANG=C.UTF-8
+
 # 対話プロンプトでビルドが止まらないようにする。
 # ARGにしているのはビルド時のみ有効にするため。ENVだと実行時にも残り、
 # コンテナ内で対話的にapt-getを使ったときに挙動が変わってしまう。
@@ -29,8 +31,8 @@ ENV PIP_INDEX_URL="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 
 # lsb-release は次の層の lsb_release で使う。
-# software-properties-common の依存で入ってはいるが、暗黙依存にはしない。
-# unzip も同様に zip の Recommends で入るだけのため、明示的に指定する。
+# software-properties-common は Debian trixie で廃止されたため入れない。
+# unzip は zip の Recommends で入るだけのため、明示的に指定する。
 # libatomic1 は node(v26以降)の実行に要る。build-essential 経由で入ってはいるが、
 # 暗黙依存にはしない(無いと volta install pnpm が失敗する)。
 # apt lists はこの層で消しておく。後段で消してもこの層には残ってしまうため。
@@ -51,7 +53,7 @@ ENV UV_DEFAULT_INDEX="${DENV_PIP_INDEX_URL:-https://pypi.org/simple}"
 #   エディタ        : vim-tiny nano
 #   作業支援        : tree ripgrep tmux bash-completion shellcheck
 #   DBクライアント  : default-mysql-client postgresql-client
-#   その他          : software-properties-common gnupg sudo
+#   その他          : gnupg sudo
 #                     ffmpeg sox jq gettext-base lsb-release ca-certificates
 #                     libatomic1
 #
@@ -79,7 +81,7 @@ RUN apt-get update && apt-get install -y \
     rsync \
     vim-tiny nano \
     tree ripgrep tmux bash-completion shellcheck \
-    software-properties-common gnupg sudo default-mysql-client postgresql-client \
+    gnupg sudo default-mysql-client postgresql-client \
     ffmpeg sox jq gettext-base lsb-release ca-certificates libatomic1 \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
