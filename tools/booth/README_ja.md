@@ -119,6 +119,11 @@ continue = false
 `No conversation to continue; started a fresh one.` と報告します。新規プロジェクトでも
 既定のままで困りません。
 
+ただし未承認のフォルダでは、claude は会話を探す前に信頼ダイアログを出して待つため、起動直後
+には死にません。承認した直後に終了し、セッションごと消えてしまいます。これを避けるため booth
+は起動前に `~/.claude.json` の承認状態と `~/.claude/projects/` の会話記録を確かめ、未承認で
+記録も無ければ最初から `--continue` を付けずに起動します（報告は同じ文言です）。
+
 都度変えたいときは `booth open <name> --no-continue`（設定で切っている場合は `--continue`）、
 booth ごとなら `[booths.<name>].continue`、全体なら `[defaults].continue` で指定します。
 `command` に既に `-c` / `--continue` / `-r` / `--resume` が書かれていれば booth は二重には
@@ -131,7 +136,7 @@ booth ごとなら `[booths.<name>].continue`、全体なら `[defaults].continu
 | --- | --- |
 | `booth init [--force]` | `booth.toml` の雛形をカレントに書き出す |
 | `booth targets` | 設定済みターゲットの一覧 |
-| `booth open <name> [--restart] [--no-continue] [--no-wait] [--ready-timeout s]` | tmux セッションを作り、実際に使える状態になるまで待つ |
+| `booth open <name> [--restart] [--no-continue] [--no-wait] [-a] [--ready-timeout s]` | tmux セッションを作り、実際に使える状態になるまで待つ（`-a`/`--attach` で起動後そのままアタッチ） |
 | `booth ls [--target t]` | セッション一覧を状態付きで表示 |
 | `booth status <name> [--json] [--pane n] [--wait-for settled]` | 状態を報告し、状態に対応する終了コードで終わる |
 | `booth send <name> <text...> [--no-wait] [-w 秒] [--pane n] [-f]` | 1行送り、ターンの完了まで待つ。人の判断が要る状態になったらそこで止める |
@@ -140,7 +145,9 @@ booth ごとなら `[booths.<name>].continue`、全体なら `[defaults].continu
 | `booth close <name> [--settle s] [--wait s] [--force]` | ターンの完了を待ち、`/exit` を送ってから落とす |
 
 `open` は、生きているセッションがあれば `--restart` なしでは上書きせず、作業ディレクトリの
-存在をコンテナ内で確認し、起動直後にコマンドが死んだ場合は成功と報告せずエラーにします。
+存在をコンテナ内で確認し、起動直後にコマンドが死んだ場合は成功と報告せずエラーにします。`--attach` を付けると、
+コマンドの起動を確認した時点で ready を待たずに端末を渡すので、ログイン画面や信頼ダイアログに
+その場で答えられます。セッションが既に開いていれば（`--restart` なしなら）そこにアタッチします。
 
 ## 状態とフィードバック
 

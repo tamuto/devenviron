@@ -1,6 +1,8 @@
 FROM python:3.12-slim-bookworm
 
-RUN apt-get update && apt-get install -y curl p7zip-full git zip \
+# libatomic1 は node(v26以降)の実行に要る。無いと node が起動できず、
+# volta install pnpm が "Could not install package 'pnpm'" で失敗する。
+RUN apt-get update && apt-get install -y curl p7zip-full git zip libatomic1 \
 &&  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://get.volta.sh | bash \

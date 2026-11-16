@@ -62,5 +62,6 @@ permission prompt. Report those and stop.
 
 ## Do not run `booth attach`
 
-It hands the terminal over to the session interactively and does not return. Read with
+It hands the terminal over to the session interactively and does not return. The same goes for
+`booth open --attach`. Read with
 `booth logs <name>` and act with the commands booth suggests.

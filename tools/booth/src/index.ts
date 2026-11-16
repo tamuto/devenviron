@@ -20,6 +20,7 @@ import {
 import { DockerError, execInteractive, listRunningServices } from './docker.js';
 import {
   EXIT,
+  canContinue,
   describe,
   exitCodeFor,
   inspectBooth,
@@ -45,7 +46,7 @@ import {
   type SessionInfo,
 } from './session.js';
 
-const VERSION = '0.5.1';
+const VERSION = '0.7.0';
 
 /** 起動を見届ける時間。使える状態になれば待たずに抜けるので、実際にはここまで掛からない。 */
 const STARTUP_GRACE_MS = 8000;
@@ -90,6 +91,7 @@ program
   .option('--continue', 'Resume the previous conversation in the workdir (the default)')
   .option('--no-continue', 'Start a fresh conversation instead of resuming')
   .option('--no-wait', 'Return as soon as the tmux session exists')
+  .option('-a, --attach', 'Attach to the session once it is up (attaches to a live one instead of failing)')
   .option('--ready-timeout <seconds>', 'How long to wait for the session to become usable', '60')
   .action(
     (
@@ -99,6 +101,7 @@ program
         restart?: boolean;
         continue?: boolean;
         wait: boolean;
+        attach?: boolean;
         readyTimeout: string;
       }
     ) => {
@@ -106,6 +109,11 @@ program
         const booth = resolveBooth(config(), name, options.target, options.continue);
 
         if (hasSession(booth.target, booth.session)) {
+          // 開いたまま入りたいだけなら、既にあるセッションに入れば済む。
+          if (!options.restart && options.attach) {
+            console.log(`${chalk.green('✔')} ${chalk.bold(booth.name)} is already open; attaching`);
+            attach(booth);
+          }
           if (!options.restart) {
             fail(`Booth '${booth.name}' is already open on '${booth.target.name}'. Use --restart to recreate it.`);
           }
@@ -117,7 +125,14 @@ program
           fail(`Workdir '${booth.workdir}' does not exist in service '${booth.target.service}'.`);
         }
 
-        const launch = launchCommand(booth);
+        let launch = launchCommand(booth);
+        // 未承認で会話も無いフォルダに --continue を付けると、信頼ダイアログで
+        // 承認した直後に終了してしまう。下の起動後フォールバックでは拾えない。
+        let skippedContinue = false;
+        if (launch.resuming && !canContinue(booth)) {
+          launch = { command: booth.command, resuming: false };
+          skippedContinue = true;
+        }
         let command = launch.command;
         createSession(booth, command);
         let started = survivedLaunch(booth, STARTUP_GRACE_MS);
@@ -146,9 +161,13 @@ program
         );
         console.log(`  ${chalk.dim('workdir')} ${booth.workdir}`);
         console.log(`  ${chalk.dim('command')} ${command.join(' ')}`);
-        if (fellBack) {
+        if (fellBack || skippedContinue) {
           console.log(chalk.dim('  No conversation to continue; started a fresh one.'));
         }
+
+        // 入る人がその場で画面を見られるので、ready を待たずに渡す。
+        // ログイン画面や信頼ダイアログで止まっていても、そのまま答えられる。
+        if (options.attach) attach(booth);
 
         if (!options.wait) return;
 
@@ -418,8 +437,7 @@ program
   .option('-t, --target <target>', 'Target the booth runs on')
   .action((name: string, options: { target?: string }) => {
     run(() => {
-      const booth = requireOpen(name, options.target);
-      process.exit(execInteractive(booth.target, ['tmux', 'attach', '-t', `=${booth.session}`]));
+      attach(requireOpen(name, options.target));
     });
   });
 
@@ -501,6 +519,11 @@ function config(): Config {
     cachedConfig = loadConfig(program.opts<{ config?: string }>().config);
   }
   return cachedConfig;
+}
+
+/** 端末をセッションに渡し、デタッチされたらその終了コードで抜ける。 */
+function attach(booth: Booth): never {
+  process.exit(execInteractive(booth.target, ['tmux', 'attach', '-t', `=${booth.session}`]));
 }
 
 /** 開いていない booth に send/logs/attach しても意味がないので先に弾く。 */
